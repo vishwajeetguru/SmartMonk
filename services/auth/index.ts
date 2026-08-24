@@ -1,0 +1,1 @@
+export { localAuth } from './localAuth';
