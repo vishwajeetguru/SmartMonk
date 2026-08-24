@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
@@ -7,10 +8,37 @@ import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { AppButton } from '../../components/ui/AppButton';
+import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { useAuth } from '../../hooks/useAuth';
+import { useProfile } from '../../hooks/useProfile';
+import { formatters } from '../../utils/formatters';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { user, logout } = useAuth();
+  const { profile, loadProfile } = useProfile();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        loadProfile(user.id);
+      }
+    }, [user?.id])
+  );
+
+  const handleLogout = async () => {
+    setShowLogoutModal(false);
+    await logout();
+    router.replace('/');
+  };
+
+  const handleProfilePress = () => {
+    router.push('/(app)/edit-profile');
+  };
+
+  const displayName = profile?.fullName || user?.name || 'User';
+  const initials = formatters.getInitials(displayName);
 
   return (
     <ScreenContainer safeArea style={styles.container}>
@@ -18,13 +46,24 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.greetingContainer}>
             <Text style={styles.greeting}>Welcome to SmartMonk</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <Text style={styles.userName}>{displayName}</Text>
           </View>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>SM</Text>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={handleProfilePress}
+            activeOpacity={0.7}
+          >
+            {profile?.profileImage ? (
+              <Image source={{ uri: profile.profileImage }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.profileAvatar}>
+                <Text style={styles.profileInitials}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.editBadge}>
+              <Ionicons name="pencil" size={10} color={colors.white} />
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
@@ -66,12 +105,24 @@ export default function HomeScreen() {
 
         <AppButton
           title="Sign Out"
-          onPress={logout}
+          onPress={() => setShowLogoutModal(true)}
           variant="outline"
           size="medium"
           style={styles.signOutButton}
         />
       </View>
+
+      <ConfirmationModal
+        visible={showLogoutModal}
+        title="Sign Out"
+        message="Are you sure you want to sign out? You'll need to log in again to access your account."
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        icon="log-out-outline"
+        iconColor={colors.error}
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </ScreenContainer>
   );
 }
@@ -103,21 +154,41 @@ const styles = StyleSheet.create({
     ...typography.headingMedium,
     color: colors.textPrimary,
   },
-  logoContainer: {
-    marginLeft: spacing.base,
+  profileButton: {
+    position: 'relative',
   },
-  logoCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  profileAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoText: {
+  profileImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.borderLight,
+  },
+  profileInitials: {
     ...typography.headingSmall,
     color: colors.white,
     fontWeight: '700',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
   },
   card: {
     backgroundColor: colors.white,

@@ -6,3 +6,4 @@ export { AppCard } from './AppCard';
 export { IconButton } from './IconButton';
 export { LoadingIndicator } from './LoadingIndicator';
 export { ErrorMessage } from './ErrorMessage';
+export { ConfirmationModal } from './ConfirmationModal';

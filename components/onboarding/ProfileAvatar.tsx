@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, {
@@ -73,9 +73,10 @@ export function ProfileAvatar({
       activeOpacity={0.8}
     >
       {imageUri ? (
-        <View style={[styles.imageContainer, { width: size, height: size }]}>
-          <Text style={styles.imagePlaceholder}>Image</Text>
-        </View>
+        <Image
+          source={{ uri: imageUri }}
+          style={[styles.image, { width: size, height: size, borderRadius: size / 2 }]}
+        />
       ) : (
         <View
           style={[
@@ -109,16 +110,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.lg,
   },
-  imageContainer: {
-    borderRadius: radius.full,
-    overflow: 'hidden',
-    backgroundColor: colors.primarySurface,
-  },
-  imagePlaceholder: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 120,
+  image: {
+    borderWidth: 2,
+    borderColor: colors.borderLight,
   },
   placeholder: {
     backgroundColor: colors.primary,
