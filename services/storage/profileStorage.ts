@@ -4,7 +4,19 @@ import { Profile, ProfileFormData } from '../../types/profile';
 export const profileStorage = {
   async getProfile(userId: string): Promise<Profile | null> {
     const profiles = await storage.get<Record<string, Profile>>(STORAGE_KEYS.PROFILE);
-    return profiles?.[userId] || null;
+    const p = profiles?.[userId] as Profile | null;
+    if (!p) return null;
+    const defaults = {
+      countryCode: '+91',
+      dob: null as string | null,
+      vehicles: [] as Profile['vehicles'],
+      businessName: '',
+      location: '',
+      gstNumber: '',
+    };
+    const migrated = Object.assign({}, defaults, p) as Profile;
+    if (!migrated.vehicles) migrated.vehicles = [];
+    return migrated;
   },
 
   async saveProfile(userId: string, data: ProfileFormData): Promise<Profile> {
@@ -13,12 +25,15 @@ export const profileStorage = {
     const profile: Profile = {
       userId,
       fullName: data.fullName,
-      businessName: data.businessName,
+      businessName: data.businessName || '',
       mobile: data.mobile,
+      countryCode: data.countryCode || '+91',
+      dob: data.dob || null,
       businessType: data.businessType,
       vehicleCount: data.vehicleCount,
-      location: data.location,
-      gstNumber: data.gstNumber,
+      vehicles: data.vehicles || [],
+      location: data.location || '',
+      gstNumber: data.gstNumber || '',
       profileImage: data.profileImage,
       completed: true,
     };
@@ -38,6 +53,7 @@ export const profileStorage = {
     const updatedProfile: Profile = {
       ...existingProfile,
       ...data,
+      vehicles: (data.vehicles as any) || existingProfile.vehicles || [],
     };
 
     const profiles = (await storage.get<Record<string, Profile>>(STORAGE_KEYS.PROFILE)) || {};

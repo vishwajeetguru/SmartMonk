@@ -1,5 +1,5 @@
 import { LoginCredentials, SignupCredentials } from '../types/auth';
-import { ProfileFormData } from '../types/profile';
+import { ProfileFormData, Vehicle } from '../types/profile';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -26,11 +26,45 @@ export const validation = {
       return { isValid: false, error: 'Please enter your mobile number.', field: 'mobile' };
     }
 
-    const mobileRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]*$/;
-    if (!mobileRegex.test(value) || value.replace(/\D/g, '').length < 10) {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length < 10) {
       return { isValid: false, error: 'Please enter a valid mobile number.', field: 'mobile' };
     }
 
+    return { isValid: true };
+  },
+
+  dob(value: string | null): ValidationResult {
+    if (!value || !value.trim()) {
+      return { isValid: false, error: 'Please enter your date of birth.', field: 'dob' };
+    }
+    // Expect YYYY-MM-DD
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(value)) {
+      return { isValid: false, error: 'Use YYYY-MM-DD format.', field: 'dob' };
+    }
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      return { isValid: false, error: 'Please enter a valid date.', field: 'dob' };
+    }
+    const now = new Date();
+    if (date > now) {
+      return { isValid: false, error: 'Date of birth cannot be in future.', field: 'dob' };
+    }
+    const age = now.getFullYear() - date.getFullYear();
+    if (age < 10 || age > 100) {
+      return { isValid: false, error: 'Please enter a valid date of birth.', field: 'dob' };
+    }
+    return { isValid: true };
+  },
+
+  vehicleNumber(value: string): ValidationResult {
+    if (!value.trim()) {
+      return { isValid: false, error: 'Please enter vehicle number.', field: 'vehicleNumber' };
+    }
+    if (value.trim().length < 2) {
+      return { isValid: false, error: 'Vehicle number too short.', field: 'vehicleNumber' };
+    }
     return { isValid: true };
   },
 
@@ -127,6 +161,52 @@ export const validation = {
     const mobileResult = this.mobile(data.mobile);
     if (!mobileResult.isValid) return mobileResult;
 
+    return { isValid: true };
+  },
+
+  step1(data: { fullName: string; dob: string | null }): ValidationResult {
+    const nameResult = this.name(data.fullName);
+    if (!nameResult.isValid) return nameResult;
+    const dobResult = this.dob(data.dob);
+    if (!dobResult.isValid) return dobResult;
+    return { isValid: true };
+  },
+
+  step2(data: { mobile: string }): ValidationResult {
+    return this.mobile(data.mobile);
+  },
+
+  step3(data: { businessType: string | null }): ValidationResult {
+    if (!data.businessType) {
+      return { isValid: false, error: 'Please select your business type.', field: 'businessType' };
+    }
+    return { isValid: true };
+  },
+
+  step4(data: { vehicleCount: string | null; vehicles: Vehicle[] }): ValidationResult {
+    if (!data.vehicleCount) {
+      return { isValid: false, error: 'Please select number of vehicles.', field: 'vehicleCount' };
+    }
+    for (let i = 0; i < data.vehicles.length; i++) {
+      const v = data.vehicles[i];
+      if (!v.number.trim()) {
+        return { isValid: false, error: `Please enter vehicle ${i + 1} number.`, field: `vehicle_${i}` };
+      }
+    }
+    // uniqueness check (case-insensitive, ignore spaces)
+    const normalized = data.vehicles.map((v) => v.number.trim().toLowerCase().replace(/\s+/g, ''));
+    const seen = new Set<string>();
+    for (let i = 0; i < normalized.length; i++) {
+      const n = normalized[i];
+      if (seen.has(n)) {
+        return {
+          isValid: false,
+          error: `Duplicate vehicle number: "${data.vehicles[i].number.trim()}" already used.`,
+          field: `vehicle_${i}`,
+        };
+      }
+      seen.add(n);
+    }
     return { isValid: true };
   },
 };
