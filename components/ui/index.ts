@@ -7,3 +7,4 @@ export { IconButton } from './IconButton';
 export { LoadingIndicator } from './LoadingIndicator';
 export { ErrorMessage } from './ErrorMessage';
 export { ConfirmationModal } from './ConfirmationModal';
+export { SuccessModal } from './SuccessModal';

@@ -5,6 +5,10 @@ const STORAGE_KEYS = {
   SESSION: '@smartmonk_session',
   PROFILE: '@smartmonk_profile',
   ONBOARDING: '@smartmonk_onboarding',
+  SUPPLIERS: '@smartmonk_suppliers',
+  PUMPS: '@smartmonk_pumps',
+  TRIPS: '@smartmonk_trips',
+  DRIVERS: '@smartmonk_drivers',
 } as const;
 
 export const storage = {

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
@@ -7,17 +7,14 @@ import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
-import { AppButton } from '../../components/ui/AppButton';
-import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useProfile } from '../../hooks/useProfile';
 import { formatters } from '../../utils/formatters';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { profile, loadProfile } = useProfile();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,14 +24,8 @@ export default function HomeScreen() {
     }, [user?.id])
   );
 
-  const handleLogout = async () => {
-    setShowLogoutModal(false);
-    await logout();
-    router.replace('/');
-  };
-
   const handleProfilePress = () => {
-    router.push('/(app)/edit-profile');
+    router.push('/(app)/profile');
   };
 
   const displayName = profile?.fullName || user?.name || 'User';
@@ -42,7 +33,11 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer safeArea style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <View style={styles.greetingContainer}>
             <Text style={styles.greeting}>Welcome to SmartMonk</Text>
@@ -102,27 +97,7 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
-
-        <AppButton
-          title="Sign Out"
-          onPress={() => setShowLogoutModal(true)}
-          variant="outline"
-          size="medium"
-          style={styles.signOutButton}
-        />
-      </View>
-
-      <ConfirmationModal
-        visible={showLogoutModal}
-        title="Sign Out"
-        message="Are you sure you want to sign out? You'll need to log in again to access your account."
-        confirmText="Sign Out"
-        cancelText="Cancel"
-        icon="log-out-outline"
-        iconColor={colors.error}
-        onConfirm={handleLogout}
-        onCancel={() => setShowLogoutModal(false)}
-      />
+      </ScrollView>
     </ScreenContainer>
   );
 }
@@ -131,10 +106,11 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.background,
   },
-  content: {
-    flex: 1,
+  scrollView: { flex: 1 },
+  scrollContent: {
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: 110,
   },
   header: {
     flexDirection: 'row',
@@ -264,8 +240,5 @@ const styles = StyleSheet.create({
   featureText: {
     ...typography.bodySmall,
     color: colors.textPrimary,
-  },
-  signOutButton: {
-    marginTop: 'auto',
   },
 });

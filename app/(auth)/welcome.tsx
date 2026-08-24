@@ -1,11 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  withSpring,
   Easing,
 } from 'react-native-reanimated';
 import { colors } from '../../constants/colors';
@@ -19,6 +20,30 @@ import { TruckIllustration } from '../../components/illustrations/TruckIllustrat
 export default function WelcomeScreen() {
   const router = useRouter();
   const translateY = useSharedValue(0);
+  const [showMonk, setShowMonk] = useState(() => Math.random() > 0.5);
+  const monkOpacity = useSharedValue(showMonk ? 1 : 0);
+  const carOpacity = useSharedValue(showMonk ? 0 : 1);
+  const scale = useSharedValue(1);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setShowMonk(Math.random() > 0.5);
+      return undefined;
+    }, [])
+  );
+
+  useEffect(() => {
+    monkOpacity.value = withTiming(showMonk ? 1 : 0, { duration: 600 });
+    carOpacity.value = withTiming(showMonk ? 0 : 1, { duration: 600 });
+    scale.value = withSpring(showMonk ? 1 : 0.98, { damping: 12, stiffness: 200 });
+  }, [showMonk]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setShowMonk((p) => !p);
+    }, 3500);
+    return () => clearInterval(id);
+  }, []);
 
   React.useEffect(() => {
     translateY.value = withRepeat(
@@ -32,14 +57,34 @@ export default function WelcomeScreen() {
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [{ translateY: translateY.value }, { scale: scale.value }],
   }));
+  const monkStyle = useAnimatedStyle(() => ({ opacity: monkOpacity.value }));
+  const carStyle = useAnimatedStyle(() => ({ opacity: carOpacity.value }));
 
   return (
     <ScreenContainer safeArea style={styles.container}>
       <View style={styles.content}>
         <Animated.View style={[styles.illustrationContainer, animatedStyle]}>
-          <TruckIllustration size={220} />
+          <View style={styles.illustrationStack}>
+            <Animated.View style={[styles.illustrationLayer, monkStyle]}>
+              <Image
+                source={require('../../assets/images/monk.png')}
+                style={styles.monkImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+            <Animated.View style={[styles.illustrationLayer, carStyle]}>
+              <TruckIllustration size={220} />
+            </Animated.View>
+          </View>
+          <View style={styles.dotsRow}>
+            <View style={[styles.dot, showMonk && styles.dotActive]} />
+            <View style={[styles.dot, !showMonk && styles.dotActive]} />
+          </View>
+          <TouchableOpacity onPress={() => setShowMonk((p) => !p)} activeOpacity={0.7} style={styles.toggleHint}>
+            <Text style={styles.toggleText}>{showMonk ? 'Monk • Tap to see Truck' : 'Truck • Tap to see Monk'}</Text>
+          </TouchableOpacity>
         </Animated.View>
 
         <View style={styles.textContainer}>
@@ -85,11 +130,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   illustrationContainer: {
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
+    alignItems: 'center',
   },
+  illustrationStack: {
+    width: 240,
+    height: 240,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  illustrationLayer: {
+    position: 'absolute',
+    width: 240,
+    height: 240,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monkImage: {
+    width: 220,
+    height: 220,
+    borderRadius: 20,
+  },
+  dotsRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
+  dotActive: { backgroundColor: colors.primary, width: 18 },
+  toggleHint: { marginTop: 6, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: colors.primarySurface, borderRadius: radius.full },
+  toggleText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   textContainer: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   title: {
     ...typography.headingLarge,

@@ -68,6 +68,40 @@ export const validation = {
     return { isValid: true };
   },
 
+  aadhar(value: string): ValidationResult {
+    if (!value.trim()) return { isValid: true };
+    const cleaned = value.replace(/\s/g, '');
+    if (!/^\d{12}$/.test(cleaned)) {
+      return { isValid: false, error: 'Aadhar must be 12 digits.', field: 'aadhar' };
+    }
+    return { isValid: true };
+  },
+
+  licence(value: string): ValidationResult {
+    if (!value.trim()) {
+      return { isValid: false, error: 'Please enter driving licence number.', field: 'licence' };
+    }
+    const cleaned = value.trim().toUpperCase().replace(/[\s-]/g, '');
+    if (cleaned.length < 8 || cleaned.length > 20) {
+      return { isValid: false, error: 'Licence must be 8-20 characters.', field: 'licence' };
+    }
+    if (!/^[A-Z0-9]+$/.test(cleaned)) {
+      return { isValid: false, error: 'Licence must be alphanumeric.', field: 'licence' };
+    }
+    if (!/[A-Z]/.test(cleaned) || !/\d/.test(cleaned)) {
+      return { isValid: false, error: 'Licence must contain letters and numbers.', field: 'licence' };
+    }
+    return { isValid: true };
+  },
+
+  duplicateCheck(value: string, existing: string[], field: string, label: string): ValidationResult {
+    const norm = value.trim().toLowerCase();
+    if (existing.map((e) => e.trim().toLowerCase()).includes(norm)) {
+      return { isValid: false, error: `${label} already exists.`, field };
+    }
+    return { isValid: true };
+  },
+
   password(value: string): ValidationResult {
     if (!value) {
       return { isValid: false, error: 'Please enter a password.', field: 'password' };

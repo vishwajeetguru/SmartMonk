@@ -4,7 +4,7 @@
     "slug": "smartmonk",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icons/appIcon.png",
     "userInterfaceStyle": "light",
     "scheme": "smartmonk",
     "ios": {
@@ -13,10 +13,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/icons/appIcon.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "monochromeImage": "./assets/icons/appIcon.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.smartmonk.app"
