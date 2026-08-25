@@ -3,6 +3,7 @@ export interface Supplier {
   userId: string;
   name: string;
   contact: string;
+  material?: string;
   address?: string;
   createdAt: string;
 }
@@ -10,5 +11,6 @@ export interface Supplier {
 export interface SupplierFormData {
   name: string;
   contact: string;
+  material?: string;
   address?: string;
 }

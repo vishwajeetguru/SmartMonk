@@ -14,6 +14,7 @@ export const supplierStorage = {
       userId,
       name: data.name.trim(),
       contact: data.contact.trim(),
+      material: data.material?.trim(),
       address: data.address?.trim(),
       createdAt: new Date().toISOString(),
     };
@@ -22,7 +23,18 @@ export const supplierStorage = {
   },
   async update(id: string, data: Partial<SupplierFormData>): Promise<void> {
     const all = (await storage.get<Supplier[]>(STORAGE_KEYS.SUPPLIERS)) || [];
-    const next = all.map((s) => (s.id === id ? { ...s, ...data } : s));
+    const next = all.map((s) =>
+      s.id === id
+        ? {
+            ...s,
+            ...data,
+            name: data.name?.trim() ?? s.name,
+            contact: data.contact?.trim() ?? s.contact,
+            material: data.material?.trim() ?? s.material,
+            address: data.address?.trim() ?? s.address,
+          }
+        : s
+    );
     await storage.set(STORAGE_KEYS.SUPPLIERS, next);
   },
   async remove(id: string): Promise<void> {

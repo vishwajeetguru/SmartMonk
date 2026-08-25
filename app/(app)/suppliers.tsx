@@ -23,9 +23,10 @@ export default function SuppliersScreen() {
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
+  const [material, setMaterial] = useState('');
   const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; contact?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; contact?: string; material?: string }>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -33,8 +34,8 @@ export default function SuppliersScreen() {
   const load = useCallback(async () => { if (user?.id) setList(await supplierStorage.getAll(user.id)); }, [user?.id]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const openAdd = () => { setEditing(null); setName(''); setContact(''); setAddress(''); setErrors({}); setShowAdd(true); };
-  const openEdit = (item: Supplier) => { setEditing(item); setName(item.name); setContact(item.contact); setAddress(item.address || ''); setErrors({}); setShowAdd(true); };
+  const openAdd = () => { setEditing(null); setName(''); setContact(''); setMaterial(''); setAddress(''); setErrors({}); setShowAdd(true); };
+  const openEdit = (item: Supplier) => { setEditing(item); setName(item.name); setContact(item.contact); setMaterial(item.material || ''); setAddress(item.address || ''); setErrors({}); setShowAdd(true); };
 
   const validate = (): boolean => {
     const nameRes = validation.name(name);
@@ -42,6 +43,7 @@ export default function SuppliersScreen() {
     const newErr: any = {};
     if (!nameRes.isValid) newErr.name = nameRes.error;
     if (!mobRes.isValid) newErr.contact = mobRes.error;
+    if (material && material.trim().length < 2) newErr.material = 'Material too short';
     // duplicate check (name or contact)
     const others = list.filter((s) => s.id !== editing?.id);
     if (others.some((s) => s.contact.trim() === contact.trim())) newErr.contact = 'Contact already exists';
@@ -55,10 +57,10 @@ export default function SuppliersScreen() {
     if (!user?.id) return;
     setSaving(true);
     if (editing) {
-      await supplierStorage.update(editing.id, { name, contact, address });
+      await supplierStorage.update(editing.id, { name, contact, material, address });
       setSuccessMsg('Supplier updated successfully');
     } else {
-      await supplierStorage.add(user.id, { name, contact, address });
+      await supplierStorage.add(user.id, { name, contact, material, address });
       setSuccessMsg('Supplier added successfully');
     }
     setShowAdd(false); setSaving(false); setShowSuccess(true); load();
@@ -81,7 +83,7 @@ export default function SuppliersScreen() {
         <FlatList data={list} keyExtractor={(i) => i.id} contentContainerStyle={{ padding: spacing.base, paddingBottom: 100, gap: 10 }}
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <View style={styles.cardLeft}><View style={styles.avatar}><Text style={styles.avatarText}>{item.name[0]?.toUpperCase()}</Text></View><View style={{ flex: 1 }}><Text style={styles.cardTitle}>{item.name}</Text><Text style={styles.cardSub}>{item.contact}</Text>{item.address ? <Text style={styles.cardSub2}>{item.address}</Text> : null}</View></View>
+              <View style={styles.cardLeft}><View style={styles.avatar}><Text style={styles.avatarText}>{item.name[0]?.toUpperCase()}</Text></View><View style={{ flex: 1 }}><Text style={styles.cardTitle}>{item.name}</Text><Text style={styles.cardSub}>{item.contact}{item.material ? ` • ${item.material}` : ''}</Text>{item.address ? <Text style={styles.cardSub2}>{item.address}</Text> : null}</View></View>
               <View style={styles.actions}>
                 <TouchableOpacity onPress={() => openEdit(item)} style={styles.iconBtn}><Ionicons name="pencil-outline" size={18} color={colors.primary} /></TouchableOpacity>
                 <TouchableOpacity onPress={() => setDeleteId(item.id)} style={styles.iconBtn}><Ionicons name="trash-outline" size={18} color={colors.error} /></TouchableOpacity>
@@ -96,6 +98,7 @@ export default function SuppliersScreen() {
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: spacing.base }}>
               <AppInput label="Name *" value={name} onChangeText={setName} placeholder="Supplier name" error={errors.name} />
               <AppInput label="Contact *" value={contact} onChangeText={setContact} placeholder="Phone number" keyboardType="phone-pad" error={errors.contact} />
+              <AppInput label="Material" value={material} onChangeText={setMaterial} placeholder="e.g. Cement, Steel" error={errors.material} leftIcon={<Ionicons name="cube-outline" size={18} color={colors.textSecondary} />} />
               <AppInput label="Address" value={address} onChangeText={setAddress} placeholder="Optional address" />
               <AppButton title={editing ? 'Update Supplier' : 'Save Supplier'} onPress={handleSave} loading={saving} />
             </ScrollView>

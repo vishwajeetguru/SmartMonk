@@ -19,7 +19,8 @@ import { VehicleCountSelector } from '../../components/onboarding/VehicleCountSe
 import { useAuth } from '../../hooks/useAuth';
 import { useProfile } from '../../hooks/useProfile';
 import { validation } from '../../utils/validation';
-import { BusinessType, VehicleCount } from '../../types/profile';
+import { BusinessType, VehicleCount, Vehicle } from '../../types/profile';
+import { generateId } from '../../utils/generateId';
 
 export default function ProfileTabScreen() {
   const router = useRouter();
@@ -33,7 +34,10 @@ export default function ProfileTabScreen() {
   const [location, setLocation] = useState('');
   const [gstNumber, setGstNumber] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ fullName?: string; mobile?: string }>({});
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [exactCount, setExactCount] = useState<number | null>(null);
+  const [customCountText, setCustomCountText] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -52,15 +56,102 @@ export default function ProfileTabScreen() {
       setLocation(profile.location || '');
       setGstNumber(profile.gstNumber || '');
       setProfileImage(profile.profileImage || null);
+      const v = profile.vehicles || [];
+      setVehicles(v);
+      if (profile.vehicleCount === '2-5' || profile.vehicleCount === '6-10') {
+        setExactCount(v.length || null);
+      } else if (profile.vehicleCount === '10+') {
+        setCustomCountText(v.length ? String(v.length) : '');
+        setExactCount(null);
+      } else {
+        setExactCount(null);
+        setCustomCountText('');
+      }
     }
   }, [profile]);
+
+  const desiredVehicleN = (() => {
+    if (!vehicleCount) return 0;
+    if (vehicleCount === '1') return 1;
+    if (vehicleCount === '10+') {
+      const n = parseInt(customCountText, 10);
+      if (!isNaN(n) && n > 0) return Math.min(n, 30);
+      return 0;
+    }
+    return exactCount || 0;
+  })();
+
+  useEffect(() => {
+    if (desiredVehicleN > 0) {
+      setVehicles((prev) => {
+        if (prev.length === desiredVehicleN) return prev;
+        const next: Vehicle[] = [];
+        for (let i = 0; i < desiredVehicleN; i++) {
+          next.push(prev[i] || { id: generateId(), number: '' });
+        }
+        return next;
+      });
+    } else if (desiredVehicleN === 0 && vehicleCount && vehicleCount !== '10+' && vehicleCount !== '1') {
+      // keep empty until exact selected
+      if (vehicles.length !== 0) setVehicles([]);
+    }
+    if (vehicleCount === '1' && vehicles.length !== 1) {
+      // for '1' ensure one entry
+      if (desiredVehicleN === 1 && vehicles.length !== 1) {
+        setVehicles((prev) => (prev.length === 1 ? prev : [{ id: generateId(), number: prev[0]?.number || '' }]));
+      }
+    }
+  }, [desiredVehicleN, vehicleCount]);
+
+  const handleVehicleCountSelect = (count: VehicleCount) => {
+    setVehicleCount(count);
+    setExactCount(null);
+    setCustomCountText('');
+    setVehicles([]);
+    setFieldErrors({});
+  };
+  const handleExactSelect = (n: number) => {
+    setExactCount(n);
+    setFieldErrors({});
+  };
+  const updateVehicleNumber = (index: number, value: string) => {
+    setVehicles((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], number: value };
+      return copy;
+    });
+  };
 
   const validateForm = (): boolean => {
     const nameResult = validation.name(fullName);
     const mobileResult = validation.mobile(mobile);
-    const newErrors: { fullName?: string; mobile?: string } = {};
-    if (!nameResult.isValid) newErrors.fullName = nameResult.error;
-    if (!mobileResult.isValid) newErrors.mobile = mobileResult.error;
+    const newErrors: Record<string, string> = {};
+    if (!nameResult.isValid) newErrors.fullName = nameResult.error!;
+    if (!mobileResult.isValid) newErrors.mobile = mobileResult.error!;
+    // vehicle validation if count selected
+    if (vehicleCount) {
+      if (vehicleCount === '10+') {
+        const n = parseInt(customCountText, 10);
+        if (!n || n <= 0) newErrors.vehicleCount = 'Enter number of vehicles';
+      }
+      if (['2-5', '6-10'].includes(vehicleCount) && !exactCount) {
+        newErrors.vehicleCount = 'Select exact number';
+      }
+      // check each vehicle number
+      for (let i = 0; i < vehicles.length; i++) {
+        if (!vehicles[i].number.trim()) {
+          newErrors[`vehicle_${i}`] = `Please enter vehicle ${i + 1} number`;
+        }
+      }
+      // uniqueness
+      const norm = vehicles.map((v) => v.number.trim().toLowerCase().replace(/\s+/g, ''));
+      const seen = new Set<string>();
+      for (let i = 0; i < norm.length; i++) {
+        if (!norm[i]) continue;
+        if (seen.has(norm[i])) newErrors[`vehicle_${i}`] = 'Duplicate number - must be unique';
+        else seen.add(norm[i]);
+      }
+    }
     setFieldErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -77,7 +168,7 @@ export default function ProfileTabScreen() {
       dob: profile?.dob || null,
       businessType,
       vehicleCount,
-      vehicles: profile?.vehicles || [],
+      vehicles,
       location,
       gstNumber,
       profileImage,
@@ -107,7 +198,52 @@ export default function ProfileTabScreen() {
             <AppInput label="Business Name" value={businessName} onChangeText={setBusinessName} placeholder="Business name" leftIcon={<Ionicons name="business-outline" size={20} color={colors.textSecondary} />} />
             <AppInput label="Mobile *" value={mobile} onChangeText={setMobile} placeholder="Mobile" keyboardType="phone-pad" error={fieldErrors.mobile} leftIcon={<Ionicons name="call-outline" size={20} color={colors.textSecondary} />} />
             <BusinessTypeSelector selected={businessType} onSelect={setBusinessType} />
-            <VehicleCountSelector selected={vehicleCount} onSelect={setVehicleCount} />
+            <VehicleCountSelector selected={vehicleCount} onSelect={handleVehicleCountSelect} error={fieldErrors.vehicleCount} />
+            {vehicleCount === '10+' && (
+              <AppInput
+                label="Enter exact number of vehicles"
+                value={customCountText}
+                onChangeText={(t) => {
+                  const cleaned = t.replace(/[^0-9]/g, '');
+                  setCustomCountText(cleaned);
+                  if (fieldErrors.vehicleCount) setFieldErrors((p) => { const n = { ...p }; delete n.vehicleCount; return n; });
+                }}
+                placeholder="e.g. 12"
+                keyboardType="number-pad"
+                error={fieldErrors.vehicleCount}
+              />
+            )}
+            {(vehicleCount === '2-5' || vehicleCount === '6-10') && (
+              <View style={{ marginBottom: spacing.base, marginTop: spacing.sm }}>
+                <Text style={{ ...typography.label, color: colors.textPrimary, marginBottom: spacing.sm }}>Select exact number</Text>
+                <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+                  {(vehicleCount === '2-5' ? [2, 3, 4, 5] : [6, 7, 8, 9, 10]).map((n) => (
+                    <TouchableOpacity key={n} style={[styles.vehicleChip, exactCount === n && styles.vehicleChipActive]} onPress={() => handleExactSelect(n)}>
+                      <Text style={[styles.vehicleChipText, exactCount === n && styles.vehicleChipTextActive]}>{n}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {fieldErrors.vehicleCount ? <Text style={{ ...typography.caption, color: colors.error, marginTop: spacing.xs }}>{fieldErrors.vehicleCount}</Text> : null}
+              </View>
+            )}
+            {vehicles.length > 0 && (
+              <View style={{ marginTop: spacing.base, paddingTop: spacing.base, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
+                <Text style={{ ...typography.label, color: colors.textPrimary, marginBottom: 2 }}>Vehicle details ({vehicles.length})</Text>
+                <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: spacing.base }}>Saved numbers shown — edit as needed</Text>
+                {vehicles.map((v, idx) => (
+                  <AppInput
+                    key={v.id}
+                    label={`Vehicle ${idx + 1} *`}
+                    value={v.number}
+                    onChangeText={(t) => updateVehicleNumber(idx, t)}
+                    placeholder={`e.g. MH12 AB 1234 or My Truck ${idx + 1}`}
+                    autoCapitalize="characters"
+                    error={fieldErrors[`vehicle_${idx}`]}
+                    leftIcon={<Ionicons name="car-outline" size={20} color={colors.textSecondary} />}
+                  />
+                ))}
+              </View>
+            )}
             <AppInput label="Location" value={location} onChangeText={setLocation} placeholder="Location" leftIcon={<Ionicons name="location-outline" size={20} color={colors.textSecondary} />} />
             <AppInput label="GST Number" value={gstNumber} onChangeText={setGstNumber} placeholder="GST" leftIcon={<Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />} />
             <View style={styles.saveButtonWrap}>
@@ -171,4 +307,17 @@ const styles = StyleSheet.create({
   logoutTitle: { ...typography.body, fontWeight: '600', color: colors.error },
   logoutSubtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 1 },
   accountHint: { ...typography.caption, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.sm },
+  vehicleChip: {
+    minWidth: 56,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.base,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+  },
+  vehicleChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  vehicleChipText: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '600' },
+  vehicleChipTextActive: { color: colors.white },
 });

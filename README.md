@@ -14,10 +14,10 @@ A comprehensive offline-first transport business management mobile application b
 - **Welcome** - Monk image (`assets/images/monk.png`) + `TruckIllustration` stacked cross-fade, random on focus + auto-toggle 3.5s, dots + tap hint
 - **Bottom Navigation** - Floating pill bar (6 tabs: Home, Suppliers, Pumps, Trips, Drivers, Profile) with spring scale + fade, icons `home`/`cube`/`flame`/`navigate`/`people`/`person-circle`, `edit-profile` hidden (`href:null`)
 - **Suppliers / Pumps / Trips / Drivers** - Offline CRUD (AsyncStorage, `userId` scoped, `useFocusEffect` reload), add 1+ and list, edit (pencil) + delete (trash) via `ConfirmationModal`, `SuccessModal` animation after save, duplicate checks, `KeyboardAvoidingView` so inputs not covered
-  - **Suppliers:** name*, contact* (mobile validation, duplicate contact/name)
+  - **Suppliers:** name*, contact* (mobile validation, duplicate contact/name), **material** (e.g. Cement/Steel, linked to Trips), address
   - **Pumps:** name*, contact* (mobile), location* (duplicate name/contact)
-  - **Trips:** title*, from*, to*, date* (range picker Day/Month/Year), vehicle* (dropdown from `profile.vehicles`), amount, `SuccessModal`
-  - **Drivers:** fullName*, contact* (mobile), bloodGroup (8-chip grid `A+ A- B+ B- AB+ AB- O+ O-`), aadhar (12 digits), licence* (8-20 alphanum, letters+digits), address, salary, assignedVehicle (dropdown from fleet), duplicate contact/aadhar/licence, `ConfirmationModal`/`SuccessModal`
+  - **Trips:** **Select Truck** (dropdown from `profile.vehicles` — single shows pill, multi shows picker), **Trip Date** range picker (`MM/DD/YYYY` like 08/25/2026), **Material** (dropdown from Suppliers’ materials), **Material Price** (numbers-only), **Supplier Name** (dropdown from Suppliers), **Client Name** (manual), **Trips Count** (`-/+` 1..n), **Location**, **Financial Details** card (Total Value/Profit/Total Expense ₹, bordered as per Figma), **Payment Status** (`Pending/Paid/Partial`), `SuccessModal`
+  - **Drivers:** fullName*, contact* (mobile), bloodGroup (8-chip grid `A+ A- B+ B- AB+ AB- O+ O-`), aadhar (12 digits), licence* (8-20 alphanum, letters+digits), address, salary, assignedVehicle (dropdown from fleet — all `profile.vehicles` fetched), duplicate contact/aadhar/licence, `ConfirmationModal`/`SuccessModal`, tap card → Driver Profile modal
 - **Profile Management** - Circular avatar on Home (no duplicate card) → Profile tab, `useFocusEffect` reload, Save Changes (`paddingBottom 140` so not hidden behind pill), Account section with Sign Out card (`log-out-outline` red) + `ConfirmationModal` → splash
 - **Session Persistence** - Secure local session, stay logged in after app restart, splash routing
 - **App Icon** - `assets/icons/appIcon.png` (1.8MB) as `expo.icon` + `android.adaptiveIcon`
@@ -93,10 +93,10 @@ smartmonk/
 │   └── (app)/                   # Main app (Tabs)
 │       ├── _layout.tsx          # Tabs with BottomTabBar (6 tabs)
 │       ├── home.tsx             # Circular avatar → Profile, ScrollView
-│       ├── suppliers.tsx        # CRUD + Confirmation/SuccessModal + KeyboardAvoiding
+│       ├── suppliers.tsx        # CRUD with material, Confirmation/SuccessModal + KeyboardAvoiding
 │       ├── pumps.tsx
-│       ├── trips.tsx            # Date picker + vehicle dropdown
-│       ├── drivers.tsx          # Blood group 8-chip grid + vehicle assign
+│       ├── trips.tsx            # Truck single/multi, date MM/DD/YYYY, material/supplier/client, counts, financials, payment status
+│       ├── drivers.tsx          # Blood group 8-chip grid + vehicle assign + driver profile modal
 │       ├── profile.tsx          # Profile tab with Sign Out card
 │       └── edit-profile.tsx     # Hidden stack screen (home avatar deep link)
 ├── components/
@@ -140,6 +140,8 @@ Centralized tokens — no hardcoded values in screens:
 - **Bottom Nav** - custom `BottomTabBar` pill (spring scale, fade, active `primary` pill + dot), 6 tabs, `edit-profile` hidden via `href:null` + filter, icons `cube`/`flame`/`navigate`/`people`/`person-circle`
 - **Keyboard** - `KeyboardAvoidingView` (`padding` iOS / `height` Android) + `ScrollView keyboardShouldPersistTaps` in all add/edit sheets so inputs not covered
 - **CRUD** - `supplierStorage`/`pumpStorage`/`tripStorage`/`driverStorage` with `update`/`remove`, duplicate checks (contact/aadhar/licence), `ConfirmationModal` for delete, `SuccessModal` animation after add/update
+- **Suppliers → Trips** - supplier `material` (Cement/Steel), Trips **Material** dropdown from unique `suppliers.material` set, **Supplier Name** dropdown from `suppliers` (name+material)
+- **Trips** - **Truck** single-pill vs dropdown (`profile.vehicles` length 1 vs >1), **Date** `MM/DD/YYYY` picker, **Trips Count** `-/+`, **Financial Details** bordered card (Total Value/Profit/Total Expense ₹), **Payment Status** `Pending/Paid/Partial` dot picker
 - **Profile Sign Out** - moved from Home to Profile Account section as destructive card (`log-out-outline` red, `ConfirmationModal`), `scrollContent paddingBottom 140` so Save not hidden behind pill
 
 ## License

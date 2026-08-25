@@ -38,6 +38,7 @@ export default function DriversScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [viewDriver, setViewDriver] = useState<Driver | null>(null);
 
   const load = useCallback(async () => { if (user?.id) setList(await driverStorage.getAll(user.id)); }, [user?.id]);
   useFocusEffect(useCallback(() => { load(); if (user?.id) loadProfile(user.id); }, [load, user?.id]));
@@ -88,7 +89,7 @@ export default function DriversScreen() {
       {list.length === 0 ? <View style={styles.empty}><Ionicons name="people-outline" size={48} color={colors.muted} /><Text style={styles.emptyText}>No drivers yet. Tap + to add.</Text></View> : (
         <FlatList data={list} keyExtractor={(i) => i.id} contentContainerStyle={{ padding: spacing.base, paddingBottom: 100, gap: 10 }}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity style={styles.card} onPress={() => setViewDriver(item)} activeOpacity={0.7}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{item.fullName}</Text>
                 <Text style={styles.cardSub}>{item.contact}{item.bloodGroup ? ` • ${item.bloodGroup}` : ''}</Text>
@@ -97,10 +98,10 @@ export default function DriversScreen() {
                 {item.salary ? <Text style={styles.cardSub2}>Salary: ₹{item.salary}</Text> : null}
               </View>
               <View style={styles.actions}>
-                <TouchableOpacity onPress={() => openEdit(item)} style={styles.iconBtn}><Ionicons name="pencil-outline" size={18} color={colors.primary} /></TouchableOpacity>
-                <TouchableOpacity onPress={() => setDeleteId(item.id)} style={styles.iconBtn}><Ionicons name="trash-outline" size={18} color={colors.error} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => openEdit(item)} style={styles.iconBtn} hitSlop={8}><Ionicons name="pencil-outline" size={18} color={colors.primary} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => setDeleteId(item.id)} style={styles.iconBtn} hitSlop={8}><Ionicons name="trash-outline" size={18} color={colors.error} /></TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           )} />
       )}
       <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => setShowAdd(false)}>
@@ -125,32 +126,40 @@ export default function DriversScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Modal visible={showBlood} transparent animationType="fade" onRequestClose={() => setShowBlood(false)}>
-        <TouchableOpacity style={styles.overlayCenter} activeOpacity={1} onPress={() => setShowBlood(false)}>
-          <View style={[styles.smallSheet, { maxHeight: '80%' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="water" size={18} color={colors.error} />
+      <Modal visible={showBlood} transparent animationType="slide" onRequestClose={() => setShowBlood(false)}>
+        <View style={styles.overlayCenter}>
+          <View style={[styles.smallSheet, { maxHeight: '85%', width: '90%' }]}>
+            <View style={styles.sheetHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="water" size={20} color={colors.error} />
+                </View>
+                <View>
+                  <Text style={styles.smallTitle}>Select Blood Group</Text>
+                  <Text style={{ ...typography.caption, color: colors.textSecondary }}>Tap to select • 8 options</Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.smallTitle}>Select Blood Group</Text>
-                <Text style={{ ...typography.caption, color: colors.textSecondary }}>All 8 groups available</Text>
-              </View>
+              <TouchableOpacity onPress={() => setShowBlood(false)} style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
             <View style={styles.bloodGrid}>
-              {BLOOD_GROUPS.map((b) => (
-                <TouchableOpacity key={b} style={[styles.bloodChip, bloodGroup === b && styles.bloodChipActive]} onPress={() => { setBloodGroup(b); setShowBlood(false); }}>
-                  <Ionicons name="water" size={14} color={bloodGroup === b ? colors.white : colors.error} />
+              {(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const).map((b) => (
+                <TouchableOpacity key={b} style={[styles.bloodChip, bloodGroup === b && styles.bloodChipActive]} onPress={() => { setBloodGroup(b); setShowBlood(false); }} activeOpacity={0.7}>
                   <Text style={[styles.bloodChipText, bloodGroup === b && styles.bloodChipTextActive]}>{b}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={styles.clearRow} onPress={() => { setBloodGroup(''); setShowBlood(false); }}>
-              <Ionicons name="close-circle-outline" size={18} color={colors.textSecondary} />
-              <Text style={styles.clearText}>Clear Selection</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity style={[styles.bloodActionBtn, { backgroundColor: colors.backgroundSecondary, flex: 1 }]} onPress={() => { setBloodGroup(''); setShowBlood(false); }}>
+                <Text style={{ ...typography.bodySmall, fontWeight: '600', color: colors.textSecondary }}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.bloodActionBtn, { backgroundColor: colors.primary, flex: 1 }]} onPress={() => setShowBlood(false)}>
+                <Text style={{ ...typography.bodySmall, fontWeight: '600', color: colors.white }}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       <Modal visible={showVehicle} transparent animationType="fade" onRequestClose={() => setShowVehicle(false)}>
@@ -172,6 +181,35 @@ export default function DriversScreen() {
             </ScrollView>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={!!viewDriver} transparent animationType="fade" onRequestClose={() => setViewDriver(null)}>
+        <View style={styles.overlayCenter}>
+          <View style={[styles.smallSheet, { width: '90%', maxWidth: 380 }]}>
+            <View style={{ alignItems: 'center', marginBottom: spacing.base }}>
+              <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm }}>
+                <Text style={{ ...typography.headingMedium, color: colors.white }}>{viewDriver ? viewDriver.fullName[0]?.toUpperCase() : ''}</Text>
+              </View>
+              <Text style={{ ...typography.headingSmall, color: colors.textPrimary }}>{viewDriver?.fullName}</Text>
+              <Text style={{ ...typography.bodySmall, color: colors.textSecondary }}>{viewDriver?.contact} {viewDriver?.bloodGroup ? `• ${viewDriver?.bloodGroup}` : ''}</Text>
+            </View>
+            <View style={{ gap: 10, marginBottom: spacing.base }}>
+              <View style={styles.detailRow}><Ionicons name="card-outline" size={18} color={colors.primary} /><Text style={styles.detailLabel}>Licence:</Text><Text style={styles.detailValue}>{viewDriver?.licence}</Text></View>
+              {viewDriver?.aadhar ? <View style={styles.detailRow}><Ionicons name="finger-print-outline" size={18} color={colors.primary} /><Text style={styles.detailLabel}>Aadhar:</Text><Text style={styles.detailValue}>{viewDriver?.aadhar}</Text></View> : null}
+              <View style={styles.detailRow}><Ionicons name="car-outline" size={18} color={colors.primary} /><Text style={styles.detailLabel}>Vehicle:</Text><Text style={styles.detailValue}>{viewDriver?.assignedVehicle || 'Not assigned'}</Text></View>
+              {viewDriver?.address ? <View style={styles.detailRow}><Ionicons name="location-outline" size={18} color={colors.primary} /><Text style={styles.detailLabel}>Address:</Text><Text style={styles.detailValue}>{viewDriver?.address}</Text></View> : null}
+              {viewDriver?.salary ? <View style={styles.detailRow}><Ionicons name="cash-outline" size={18} color={colors.primary} /><Text style={styles.detailLabel}>Salary:</Text><Text style={styles.detailValue}>₹{viewDriver?.salary}</Text></View> : null}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity style={[styles.detailBtn, { backgroundColor: colors.primary, flex: 1 }]} onPress={() => { if (viewDriver) { const d = viewDriver; setViewDriver(null); setTimeout(() => openEdit(d), 300); } }}>
+                <Ionicons name="pencil-outline" size={18} color={colors.white} /><Text style={{ color: colors.white, fontWeight: '600' }}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.detailBtn, { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, flex: 1 }]} onPress={() => setViewDriver(null)}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       <ConfirmationModal visible={!!deleteId} title="Delete Driver" message="Are you sure you want to delete this driver? This cannot be undone." confirmText="Delete" icon="trash-outline" iconColor={colors.error} onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
@@ -224,4 +262,9 @@ const styles = StyleSheet.create({
   bloodChipTextActive: { color: colors.white },
   clearRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 8, borderTopWidth: 1, borderTopColor: colors.borderLight },
   clearText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  bloodActionBtn: { paddingVertical: 12, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
+  detailLabel: { ...typography.bodySmall, color: colors.textSecondary, minWidth: 70, fontWeight: '600' },
+  detailValue: { ...typography.bodySmall, color: colors.textPrimary, flex: 1 },
+  detailBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: radius.md },
 });
