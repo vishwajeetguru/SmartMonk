@@ -9,17 +9,16 @@ import { radius } from '../../constants/radius';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { AppButton } from '../../components/ui/AppButton';
 import { AppInput } from '../../components/ui/AppInput';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { SuccessModal } from '../../components/ui/SuccessModal';
-import { useAuth } from '../../hooks/useAuth';
-import { tripStorage } from '../../services/storage/tripStorage';
-import { supplierStorage } from '../../services/storage/supplierStorage';
+import { tripApi } from '../../services/api/trips';
+import { supplierApi } from '../../services/api/suppliers';
 import { Trip, PAYMENT_STATUSES, PaymentStatus } from '../../types/trip';
 import { Supplier } from '../../types/supplier';
 import { useProfile } from '../../hooks/useProfile';
 
 export default function TripsScreen() {
-  const { user } = useAuth();
   const { profile, loadProfile } = useProfile();
   const [list, setList] = useState<Trip[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -45,14 +44,10 @@ export default function TripsScreen() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [showDateModal, setShowDateModal] = useState(false);
-  const [showTruckModal, setShowTruckModal] = useState(false);
-  const [showMaterialModal, setShowMaterialModal] = useState(false);
-  const [showSupplierModal, setShowSupplierModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [tempYear, setTempYear] = useState(new Date().getFullYear());
-  const [tempMonth, setTempMonth] = useState(new Date().getMonth() + 1);
-  const [tempDay, setTempDay] = useState(new Date().getDate());
+  const [showTruckPicker, setShowTruckPicker] = useState(false);
+  const [showMaterialPicker, setShowMaterialPicker] = useState(false);
+  const [showSupplierPicker, setShowSupplierPicker] = useState(false);
+  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
 
   const vehicles = profile?.vehicles || [];
   const materials = useMemo(() => {
@@ -62,12 +57,15 @@ export default function TripsScreen() {
   }, [suppliers]);
 
   const load = useCallback(async () => {
-    if (user?.id) {
-      setList(await tripStorage.getAll(user.id));
-      setSuppliers(await supplierStorage.getAll(user.id));
+    try {
+      const [trips, sups] = await Promise.all([tripApi.getAll(), supplierApi.getAll()]);
+      setList(trips);
+      setSuppliers(sups);
+    } catch (e) {
+      console.error(e);
     }
-  }, [user?.id]);
-  useFocusEffect(useCallback(() => { load(); if (user?.id) loadProfile(user.id); }, [load, user?.id]));
+  }, []);
+  useFocusEffect(useCallback(() => { load(); loadProfile(''); }, [load]));
 
   const openAdd = () => {
     setEditing(null);
@@ -75,7 +73,7 @@ export default function TripsScreen() {
     setTruckNumber(singleTruck);
     setDate(new Date().toISOString().slice(0, 10));
     setMaterial(''); setMaterialPrice(''); setSupplierName(''); setClientName(''); setTripsCount(1); setLocation(''); setTotalValue('0'); setProfit('0'); setTotalExpense('0'); setPaymentStatus('Pending');
-    setErrors({}); setShowAdd(true);
+    setErrors({}); setShowTruckPicker(false); setShowMaterialPicker(false); setShowSupplierPicker(false); setShowPaymentPicker(false); setShowAdd(true);
   };
   const openEdit = (item: Trip) => {
     setEditing(item);
@@ -92,31 +90,6 @@ export default function TripsScreen() {
     setTotalExpense(item.totalExpense || '0');
     setPaymentStatus(item.paymentStatus || 'Pending');
     setErrors({}); setShowAdd(true);
-  };
-
-  const openDatePicker = () => {
-    if (date) {
-      const p = date.split('-');
-      if (p.length === 3) {
-        setTempYear(parseInt(p[0]) || new Date().getFullYear());
-        setTempMonth(parseInt(p[1]) || 1);
-        setTempDay(parseInt(p[2]) || 1);
-      }
-    }
-    setShowDateModal(true);
-  };
-  const confirmDate = () => {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const d = new Date(tempYear, tempMonth, 0).getDate();
-    const safe = Math.min(tempDay, d);
-    setDate(`${tempYear}-${pad(tempMonth)}-${pad(safe)}`);
-    setShowDateModal(false);
-  };
-  const formatDisplay = (v: string) => {
-    if (!v) return 'Select date';
-    const [y, m, d] = v.split('-');
-    if (!y || !m || !d) return v;
-    return `${m}/${d}/${y}`; // MM/DD/YYYY as 08/25/2026
   };
 
   const validate = (): boolean => {
@@ -136,34 +109,46 @@ export default function TripsScreen() {
   };
 
   const handleSave = async () => {
-    if (!validate() || !user?.id) return;
+    if (!validate()) return;
     setSaving(true);
-    const data = {
-      truckNumber: truckNumber.trim(),
-      date,
-      material: material.trim(),
-      materialPrice: materialPrice.trim(),
-      supplierName: supplierName.trim(),
-      clientName: clientName.trim(),
-      tripsCount,
-      location: location.trim(),
-      totalValue: totalValue.trim() || '0',
-      profit: profit.trim() || '0',
-      totalExpense: totalExpense.trim() || '0',
-      paymentStatus,
-      vehicleNumber: truckNumber.trim(),
-      amount: totalValue.trim() || '0',
-    };
-    if (editing) {
-      await tripStorage.update(editing.id, data as any);
-      setSuccessMsg('Trip updated successfully');
-    } else {
-      await tripStorage.add(user.id, data as any);
-      setSuccessMsg('Trip added successfully');
+    try {
+      const data: any = {
+        truckNumber: truckNumber.trim(),
+        date,
+        material: material.trim(),
+        materialPrice: materialPrice.trim(),
+        supplierName: supplierName.trim(),
+        clientName: clientName.trim(),
+        tripsCount,
+        location: location.trim(),
+        totalValue: totalValue.trim() || '0',
+        profit: profit.trim() || '0',
+        totalExpense: totalExpense.trim() || '0',
+        paymentStatus,
+        vehicleNumber: truckNumber.trim(),
+        amount: totalValue.trim() || '0',
+      };
+      if (editing) {
+        await tripApi.update(editing.id, data);
+        setSuccessMsg('Trip updated successfully');
+      } else {
+        await tripApi.add(data);
+        setSuccessMsg('Trip added successfully');
+      }
+      setShowAdd(false); setShowSuccess(true); load();
+    } catch (e: any) {
+      setErrors({ material: e?.message || 'Failed to save trip' });
+    } finally {
+      setSaving(false);
     }
-    setShowAdd(false); setSaving(false); setShowSuccess(true); load();
   };
-  const handleDelete = async () => { if (!deleteId) return; await tripStorage.remove(deleteId); setDeleteId(null); load(); };
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await tripApi.remove(deleteId);
+    } catch {}
+    setDeleteId(null); load();
+  };
 
   const renderTruckField = () => {
     if (vehicles.length === 0) {
@@ -193,10 +178,21 @@ export default function TripsScreen() {
     return (
       <View>
         <Text style={styles.label}>Select Truck *</Text>
-        <TouchableOpacity style={[styles.picker, errors.truckNumber && { borderColor: colors.error }]} onPress={() => setShowTruckModal(true)}>
+        <TouchableOpacity style={[styles.picker, errors.truckNumber && { borderColor: colors.error }]} onPress={() => setShowTruckPicker((v) => !v)} activeOpacity={0.7}>
           <Text style={truckNumber ? styles.pickerText : styles.pickerPlaceholder}>{truckNumber || `Select from ${vehicles.length} trucks`}</Text>
-          <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+          <Ionicons name={showTruckPicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
         </TouchableOpacity>
+        {showTruckPicker && (
+          <View style={styles.inlineDropdown}>
+            <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+              {vehicles.map((v) => (
+                <TouchableOpacity key={v.id} style={styles.option} onPress={() => { setTruckNumber(v.number); setShowTruckPicker(false); }}>
+                  <Text style={styles.optionText}>{v.number}</Text>{truckNumber === v.number && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
         {errors.truckNumber ? <Text style={styles.errorText}>{errors.truckNumber}</Text> : null}
       </View>
     );
@@ -227,24 +223,48 @@ export default function TripsScreen() {
             <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{editing ? 'Edit Trip' : 'Add Trip'}</Text><TouchableOpacity onPress={() => setShowAdd(false)}><Ionicons name="close" size={24} color={colors.textPrimary} /></TouchableOpacity></View>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: spacing.base }}>
               {renderTruckField()}
-              <Text style={styles.label}>Trip Date *</Text>
-              <TouchableOpacity style={[styles.picker, errors.date && { borderColor: colors.error }]} onPress={openDatePicker}>
-                <Text style={styles.pickerText}>{formatDisplay(date)}</Text><Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
-              {errors.date ? <Text style={styles.errorText}>{errors.date}</Text> : null}
+              <DatePicker
+                label="Trip Date *"
+                value={date}
+                onChange={setDate}
+                placeholder="Select date"
+                error={errors.date}
+                minYear={new Date().getFullYear() - 5}
+                maxYear={new Date().getFullYear() + 5}
+                displayFormat="MM_DD_YYYY"
+                inline
+              />
 
               <Text style={styles.label}>Material *</Text>
-              <TouchableOpacity style={[styles.picker, errors.material && { borderColor: colors.error }]} onPress={() => setShowMaterialModal(true)}>
-                <Text style={material ? styles.pickerText : styles.pickerPlaceholder}>{material || (materials.length ? 'Select material' : 'No materials — add supplier first')}</Text><Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+              <TouchableOpacity style={[styles.picker, errors.material && { borderColor: colors.error }]} onPress={() => setShowMaterialPicker((v) => !v)} activeOpacity={0.7}>
+                <Text style={material ? styles.pickerText : styles.pickerPlaceholder}>{material || (materials.length ? 'Select material' : 'No materials — add supplier first')}</Text><Ionicons name={showMaterialPicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
               </TouchableOpacity>
+              {showMaterialPicker && (
+                <View style={styles.inlineDropdown}>
+                  <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                    {materials.length === 0 ? <Text style={{ ...typography.bodySmall, color: colors.textSecondary, paddingVertical: 8 }}>No materials — add material in Suppliers first</Text> : materials.map((m) => (
+                      <TouchableOpacity key={m} style={styles.option} onPress={() => { setMaterial(m); setShowMaterialPicker(false); }}><Text style={styles.optionText}>{m}</Text>{material === m && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
               {errors.material ? <Text style={styles.errorText}>{errors.material}</Text> : null}
 
               <AppInput label="Material Price" value={materialPrice} onChangeText={(t) => setMaterialPrice(t.replace(/[^0-9.]/g, ''))} placeholder="Only numbers" keyboardType="numeric" error={errors.materialPrice} leftIcon={<Ionicons name="cash-outline" size={18} color={colors.textSecondary} />} />
 
               <Text style={styles.label}>Supplier Name *</Text>
-              <TouchableOpacity style={[styles.picker, errors.supplierName && { borderColor: colors.error }]} onPress={() => setShowSupplierModal(true)}>
-                <Text style={supplierName ? styles.pickerText : styles.pickerPlaceholder}>{supplierName || (suppliers.length ? 'Select supplier' : 'No suppliers')}</Text><Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+              <TouchableOpacity style={[styles.picker, errors.supplierName && { borderColor: colors.error }]} onPress={() => setShowSupplierPicker((v) => !v)} activeOpacity={0.7}>
+                <Text style={supplierName ? styles.pickerText : styles.pickerPlaceholder}>{supplierName || (suppliers.length ? 'Select supplier' : 'No suppliers')}</Text><Ionicons name={showSupplierPicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
               </TouchableOpacity>
+              {showSupplierPicker && (
+                <View style={styles.inlineDropdown}>
+                  <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                    {suppliers.length === 0 ? <Text style={{ ...typography.bodySmall, color: colors.textSecondary, paddingVertical: 8 }}>No suppliers — add in Suppliers tab</Text> : suppliers.map((s) => (
+                      <TouchableOpacity key={s.id} style={styles.option} onPress={() => { setSupplierName(s.name); setShowSupplierPicker(false); }}><View><Text style={styles.optionText}>{s.name}</Text>{s.material ? <Text style={{ ...typography.caption, color: colors.textSecondary }}>{s.material}</Text> : null}</View>{supplierName === s.name && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
               {errors.supplierName ? <Text style={styles.errorText}>{errors.supplierName}</Text> : null}
 
               <AppInput label="Client Name *" value={clientName} onChangeText={setClientName} placeholder="Add manually" error={errors.clientName} leftIcon={<Ionicons name="person-outline" size={18} color={colors.textSecondary} />} />
@@ -266,77 +286,25 @@ export default function TripsScreen() {
               </View>
 
               <Text style={styles.label}>Payment Status</Text>
-              <TouchableOpacity style={styles.picker} onPress={() => setShowPaymentModal(true)}>
+              <TouchableOpacity style={styles.picker} onPress={() => setShowPaymentPicker((v) => !v)} activeOpacity={0.7}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={[styles.statusDot, { backgroundColor: paymentStatus === 'Paid' ? colors.success : paymentStatus === 'Partial' ? colors.warning : colors.textTertiary }]} />
                   <Text style={styles.pickerText}>{paymentStatus}</Text>
                 </View>
-                <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                <Ionicons name={showPaymentPicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
               </TouchableOpacity>
+              {showPaymentPicker && (
+                <View style={styles.inlineDropdown}>
+                  {PAYMENT_STATUSES.map((p) => (
+                    <TouchableOpacity key={p} style={styles.option} onPress={() => { setPaymentStatus(p); setShowPaymentPicker(false); }}><Text style={styles.optionText}>{p}</Text>{paymentStatus === p && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               <AppButton title={editing ? 'Update Trip' : 'Save Trip'} onPress={handleSave} loading={saving} />
             </ScrollView>
           </View></View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal visible={showDateModal} transparent animationType="fade" onRequestClose={() => setShowDateModal(false)}>
-        <View style={styles.overlay}><View style={styles.dateModal}>
-          <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>Select Trip Date</Text><TouchableOpacity onPress={() => setShowDateModal(false)}><Ionicons name="close" size={24} color={colors.textPrimary} /></TouchableOpacity></View>
-          {(() => {
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const years = Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - 5 + i);
-            const daysInMonth = new Date(tempYear, tempMonth, 0).getDate();
-            const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-            const safeDay = Math.min(tempDay, daysInMonth);
-            return (
-              <View style={styles.dateRow}>
-                <View style={styles.dateCol}><Text style={styles.dateLabel}>Day</Text><ScrollView style={styles.dateScroll}>{days.map((d) => (<TouchableOpacity key={d} style={[styles.dateItem, safeDay === d && styles.dateItemActive]} onPress={() => setTempDay(d)}><Text style={[styles.dateText, safeDay === d && styles.dateTextActive]}>{String(d).padStart(2, '0')}</Text></TouchableOpacity>))}</ScrollView></View>
-                <View style={styles.dateCol}><Text style={styles.dateLabel}>Month</Text><ScrollView style={styles.dateScroll}>{months.map((m, idx) => (<TouchableOpacity key={m} style={[styles.dateItem, tempMonth === idx + 1 && styles.dateItemActive]} onPress={() => setTempMonth(idx + 1)}><Text style={[styles.dateText, tempMonth === idx + 1 && styles.dateTextActive]}>{m}</Text></TouchableOpacity>))}</ScrollView></View>
-                <View style={styles.dateCol}><Text style={styles.dateLabel}>Year</Text><ScrollView style={styles.dateScroll}>{years.map((y) => (<TouchableOpacity key={y} style={[styles.dateItem, tempYear === y && styles.dateItemActive]} onPress={() => setTempYear(y)}><Text style={[styles.dateText, tempYear === y && styles.dateTextActive]}>{y}</Text></TouchableOpacity>))}</ScrollView></View>
-              </View>
-            );
-          })()}
-          <View style={styles.dateFooter}><TouchableOpacity style={styles.cancelBtn} onPress={() => setShowDateModal(false)}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.confirmBtn} onPress={confirmDate}><Text style={styles.confirmText}>Confirm</Text></TouchableOpacity></View>
-        </View></View>
-      </Modal>
-
-      <Modal visible={showTruckModal} transparent animationType="fade" onRequestClose={() => setShowTruckModal(false)}>
-        <TouchableOpacity style={styles.overlayCenter} activeOpacity={1} onPress={() => setShowTruckModal(false)}><View style={styles.smallSheet}>
-          <Text style={styles.smallTitle}>Select Truck — {vehicles.length} available</Text>
-          <ScrollView style={{ maxHeight: 320 }}>{vehicles.map((v) => (<TouchableOpacity key={v.id} style={styles.option} onPress={() => { setTruckNumber(v.number); setShowTruckModal(false); }}><Text style={styles.optionText}>{v.number}</Text>{truckNumber === v.number && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>))}</ScrollView>
-        </View></TouchableOpacity>
-      </Modal>
-
-      <Modal visible={showMaterialModal} transparent animationType="fade" onRequestClose={() => setShowMaterialModal(false)}>
-        <TouchableOpacity style={styles.overlayCenter} activeOpacity={1} onPress={() => setShowMaterialModal(false)}><View style={styles.smallSheet}>
-          <Text style={styles.smallTitle}>Select Material</Text>
-          <ScrollView style={{ maxHeight: 320 }}>
-            {materials.length === 0 ? <Text style={{ ...typography.bodySmall, color: colors.textSecondary, paddingVertical: 12 }}>No materials — add material in Suppliers first</Text> : materials.map((m) => (
-              <TouchableOpacity key={m} style={styles.option} onPress={() => { setMaterial(m); setShowMaterialModal(false); }}><Text style={styles.optionText}>{m}</Text>{material === m && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View></TouchableOpacity>
-      </Modal>
-
-      <Modal visible={showSupplierModal} transparent animationType="fade" onRequestClose={() => setShowSupplierModal(false)}>
-        <TouchableOpacity style={styles.overlayCenter} activeOpacity={1} onPress={() => setShowSupplierModal(false)}><View style={styles.smallSheet}>
-          <Text style={styles.smallTitle}>Select Supplier</Text>
-          <ScrollView style={{ maxHeight: 320 }}>
-            {suppliers.length === 0 ? <Text style={{ ...typography.bodySmall, color: colors.textSecondary, paddingVertical: 12 }}>No suppliers — add in Suppliers tab</Text> : suppliers.map((s) => (
-              <TouchableOpacity key={s.id} style={styles.option} onPress={() => { setSupplierName(s.name); setShowSupplierModal(false); }}><View><Text style={styles.optionText}>{s.name}</Text>{s.material ? <Text style={{ ...typography.caption, color: colors.textSecondary }}>{s.material}</Text> : null}</View>{supplierName === s.name && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View></TouchableOpacity>
-      </Modal>
-
-      <Modal visible={showPaymentModal} transparent animationType="fade" onRequestClose={() => setShowPaymentModal(false)}>
-        <TouchableOpacity style={styles.overlayCenter} activeOpacity={1} onPress={() => setShowPaymentModal(false)}><View style={styles.smallSheet}>
-          <Text style={styles.smallTitle}>Payment Status</Text>
-          {PAYMENT_STATUSES.map((p) => (
-            <TouchableOpacity key={p} style={styles.option} onPress={() => { setPaymentStatus(p); setShowPaymentModal(false); }}><Text style={styles.optionText}>{p}</Text>{paymentStatus === p && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
-          ))}
-        </View></TouchableOpacity>
       </Modal>
 
       <ConfirmationModal visible={!!deleteId} title="Delete Trip" message="Are you sure you want to delete this trip?" confirmText="Delete" icon="trash-outline" iconColor={colors.error} onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />
@@ -368,6 +336,9 @@ const styles = StyleSheet.create({
   pickerText: { ...typography.body, color: colors.textPrimary },
   pickerPlaceholder: { ...typography.body, color: colors.textTertiary },
   errorText: { ...typography.caption, color: colors.error, marginBottom: 8 },
+  inlineDropdown: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.base, marginTop: -4, maxHeight: 220 },
+  inlineHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm, paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  inlineTitle: { ...typography.labelSmall, color: colors.textSecondary, fontWeight: '600' },
   singleTruck: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.primarySurface, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 14, marginBottom: 8 },
   singleTruckText: { ...typography.body, fontWeight: '700', color: colors.primary, flex: 1 },
   singleBadge: { backgroundColor: colors.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.full },
@@ -378,8 +349,7 @@ const styles = StyleSheet.create({
   counterText: { ...typography.headingSmall, color: colors.primary, textAlign: 'center' },
   financialCard: { borderWidth: 2, borderColor: colors.textPrimary, borderRadius: radius.lg, padding: spacing.base, marginVertical: spacing.base, backgroundColor: colors.white },
   financialTitle: { ...typography.labelSmall, color: colors.textSecondary, letterSpacing: 0.8, marginBottom: spacing.sm },
-  dateModal: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.base, paddingBottom: spacing.xl, maxHeight: '70%' },
-  dateRow: { flexDirection: 'row', gap: 8, height: 260 },
+  dateRow: { flexDirection: 'row', gap: 8, height: 200 },
   dateCol: { flex: 1, borderWidth: 1, borderColor: colors.borderLight, borderRadius: radius.md, overflow: 'hidden' },
   dateLabel: { ...typography.labelSmall, color: colors.textSecondary, textAlign: 'center', paddingVertical: 6, backgroundColor: colors.backgroundSecondary, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   dateScroll: { flex: 1 },

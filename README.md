@@ -1,27 +1,28 @@
 # SmartMonk
 
-A comprehensive offline-first transport business management mobile application built with Expo and React Native.
+A comprehensive offline-first transport business management mobile application built with Expo and React Native — now with **online API** via `smartmonk-backend`.
 
 ## Features
 
 ### Phase 1 (Current)
-- **User Authentication** - Local signup/login with AsyncStorage, form validation (email/password), footer `Text` link to prevent clipping
-- **4-Step Onboarding**
-  - **Step 1 — Personal:** Avatar (expo-image-picker) + Full name + DOB via range date picker (Year 100y–10y, Month/Day columns, `YYYY-MM-DD` storage, `daysInMonth` guard)
-  - **Step 2 — Contact:** Country code with flags modal (🇮🇳 +91, 🇺🇸 +1, etc.) + mobile number
-  - **Step 3 — Business:** Business type cards (Truck Owner / Fleet Owner / Transport Contractor / Driver / Other)
-  - **Step 4 — Fleet:** Vehicle count (`1` / `2-5` / `6-10` / `10+`) → exact chip for ranges or numeric for `10+` → dynamic `Vehicle 1..N Number/Nickname` inputs with live duplicate detection
-- **Welcome** - Monk image (`assets/images/monk.png`) + `TruckIllustration` stacked cross-fade, random on focus + auto-toggle 3.5s, dots + tap hint
-- **Bottom Navigation** - Floating pill bar (6 tabs: Home, Suppliers, Pumps, Trips, Drivers, Profile) with spring scale + fade, icons `home`/`cube`/`flame`/`navigate`/`people`/`person-circle`, `edit-profile` hidden (`href:null`)
-- **Suppliers / Pumps / Trips / Drivers** - Offline CRUD (AsyncStorage, `userId` scoped, `useFocusEffect` reload), add 1+ and list, edit (pencil) + delete (trash) via `ConfirmationModal`, `SuccessModal` animation after save, duplicate checks, `KeyboardAvoidingView` so inputs not covered
-  - **Suppliers:** name*, contact* (mobile validation, duplicate contact/name), **material** (e.g. Cement/Steel, linked to Trips), address
-  - **Pumps:** name*, contact* (mobile), location* (duplicate name/contact)
-  - **Trips:** **Select Truck** (dropdown from `profile.vehicles` — single shows pill, multi shows picker), **Trip Date** range picker (`MM/DD/YYYY` like 08/25/2026), **Material** (dropdown from Suppliers’ materials), **Material Price** (numbers-only), **Supplier Name** (dropdown from Suppliers), **Client Name** (manual), **Trips Count** (`-/+` 1..n), **Location**, **Financial Details** card (Total Value/Profit/Total Expense ₹, bordered as per Figma), **Payment Status** (`Pending/Paid/Partial`), `SuccessModal`
-  - **Drivers:** fullName*, contact* (mobile), bloodGroup (8-chip grid `A+ A- B+ B- AB+ AB- O+ O-`), aadhar (12 digits), licence* (8-20 alphanum, letters+digits), address, salary, assignedVehicle (dropdown from fleet — all `profile.vehicles` fetched), duplicate contact/aadhar/licence, `ConfirmationModal`/`SuccessModal`, tap card → Driver Profile modal
-- **Profile Management** - Circular avatar on Home (no duplicate card) → Profile tab, `useFocusEffect` reload, Save Changes (`paddingBottom 140` so not hidden behind pill), Account section with Sign Out card (`log-out-outline` red) + `ConfirmationModal` → splash
-- **Session Persistence** - Secure local session, stay logged in after app restart, splash routing
+- **User Authentication** - API `POST /auth/signup` + `POST /auth/login` (`types/auth.ts:10`, `utils/validation.ts:106`, `hooks/useAuth.ts:1` with `services/api/auth.ts:1` + JWT `tokenStorage`), footer `Text` link to prevent clipping, `crypto.getRandomValues` replaced by `generateId()`
+- **4-Step Onboarding** (`app/(onboarding)/profile-setup.tsx:1` with reusable `components/ui/DatePicker.tsx:1`)
+  - **Step 1 — Personal:** Avatar + Full name + **DOB via reusable DatePicker** (range picker Day/Month/Year, 100y–10y, `YYYY-MM-DD`, `daysInMonth` guard, helper text `We use this...` with `spacing.xl` bottom padding)
+  - **Step 2 — Contact:** Country code flags modal + mobile
+  - **Step 3 — Business:** Business type cards
+  - **Step 4 — Fleet:** Vehicle count → exact chip or numeric → dynamic `Vehicle 1..N` inputs, live duplicate detection, saved nicknames shown when editing profile
+- **Welcome** - Monk (`assets/images/monk.png`) + `TruckIllustration` stacked cross-fade, random on focus + 3.5s auto-toggle, dots + tap hint
+- **Bottom Navigation** - Floating pill (6 tabs: Home, Suppliers, Pumps, Trips, Drivers, Profile) with spring scale + fade, icons `home`/`cube`/`flame`/`navigate`/`people`/`person-circle`, `edit-profile` hidden (`href:null` + filter), Sign Out moved from Home to **Profile Account** card
+- **Suppliers / Pumps / Trips / Drivers** - **API CRUD** (`services/api/suppliers.ts:1`, `pumps.ts:1`, `trips.ts:1`, `drivers.ts:1` via `http://192.168.1.6:3000/api/v1` / `EXPO_PUBLIC_API_URL`), `userId` scoped by JWT, `useFocusEffect` reload, edit/delete via `ConfirmationModal` (now `padding xxl`, `gap base`, `minHeight 52`), `SuccessModal` animation, `KeyboardAvoidingView` + inline dropdowns (no nested `Modal` bug)
+  - **Suppliers:** name*, contact* (mobile), **material** (linked to Trips), address
+  - **Pumps:** name*, contact*, location*
+  - **Trips:** **Truck** single-pill vs dropdown (`GET /api/v1/profile/vehicles` → `profile.vehicles`), **Trip Date** reusable `DatePicker` `inline` (`MM/DD/YYYY`, 5y ago to 5y future), **Material** (from Suppliers’ materials), **Material Price** (numbers-only), **Supplier Name** (from Suppliers), **Client Name**, **Trips Count** `-/+`, **Location**, **Financial Details** card (`Total Value/Profit/Total Expense` ₹), **Payment Status** (`Pending/Paid/Partial`)
+  - **Drivers:** fullName*, contact* (mobile), bloodGroup (8-chip grid `A+ A- B+ B- AB+ AB- O+ O-` via inline dropdown), aadhar (12d), licence* (8-20 alphanum), address, salary, assignedVehicle (from `profile.vehicles`), duplicate checks, tap card → Driver Profile modal
+- **Profile** - Circular avatar, `useFocusEffect` reload, **fleet vehicle inputs** show saved numbers when count changes, Save `paddingBottom 140` so not hidden behind pill, Account Sign Out card
+- **Session & Splash** - `app/_layout.tsx:1` + `app/index.tsx:1` now `useAuth` `isAuthenticated/isProfileComplete` from API (not `AsyncStorage` session), splash 2s animation then route
 - **App Icon** - `assets/icons/appIcon.png` (1.8MB) as `expo.icon` + `android.adaptiveIcon`
-- **Offline-First** - Works completely without internet, no API or cloud dependency
+- **Reusable DatePicker** - `components/ui/DatePicker.tsx:1` (`label/value/onChange/minYear/maxYear/displayFormat/inline`) with Day/Month/Year columns, `inline` for forms inside modals — used in Onboarding DOB and Trips Date
+- **Offline → Online** - `services/storage/*` kept as fallback, primary is API; `services/api/client.ts:1` handles `401` refresh, `tokenStorage`
 
 ### Upcoming Phases
 - Advanced Vehicle Management
@@ -33,8 +34,9 @@ A comprehensive offline-first transport business management mobile application b
 
 - **Framework:** Expo SDK 54
 - **Language:** TypeScript (strict)
-- **Navigation:** Expo Router (file-based, (auth)/(onboarding)/(app) groups, Tabs + Stack)
-- **Storage:** @react-native-async-storage/async-storage
+- **Navigation:** Expo Router (Tabs + Stack)
+- **Storage:** @react-native-async-storage/async-storage (fallback) + `services/api/*` (primary)
+- **Backend:** Node 20 + Express 4 + Prisma 5 + PostgreSQL 15 (`E:\Projects\Mobile Applications\smartmonk-backend`, `prisma/schema.prisma:78` `enum BloodGroup`, `GET /api/v1/profile/vehicles` etc., Swagger `http://localhost:3000/api/docs`)
 - **Animations:** React Native Reanimated + react-native-worklets
 - **Icons:** @expo/vector-icons (Ionicons)
 - **Image:** expo-image-picker
@@ -42,111 +44,74 @@ A comprehensive offline-first transport business management mobile application b
 
 ## Screens
 
-Splash → Welcome (Monk/Truck random) → Login / Sign Up → Profile Setup (4 steps) → Setup Complete → Home → Suppliers / Pumps / Trips / Drivers / Profile (Bottom Tabs) → Edit Profile (hidden, via Home avatar)
+Splash → Welcome (Monk/Truck) → Login / Sign Up (API) → Profile Setup (4 steps, DOB DatePicker) → Setup Complete → Home → Suppliers / Pumps / Trips (DatePicker inline) / Drivers (blood group inline) / Profile (Bottom Tabs) → Edit Profile (hidden)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm or yarn
-- Expo Go app on your phone (SDK 54)
+- Node.js (v18+), npm, Expo Go (SDK 54), PostgreSQL (for backend)
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/vishwajeetguru/SmartMonk.git
+# 1. Backend
+cd "E:\Projects\Mobile Applications\smartmonk-backend"
+npm install
+# set DATABASE_URL in .env, then
+npx prisma migrate dev
+npm run dev # -> http://localhost:3000/api/docs
 
-# Navigate to project directory
-cd SmartMonk
-
-# Install dependencies
+# 2. Mobile
+cd "E:\Projects\Mobile Applications\smartmonk"
 npm install --legacy-peer-deps
-
-# Start the development server
+# set EXPO_PUBLIC_API_URL in .env (e.g. http://192.168.1.6:3000/api/v1 for device)
 npx expo start --clear
 ```
 
 ### Running the App
 
-1. Install Expo Go on your iOS or Android device
-2. Run `npx expo start --clear` in the project directory
-3. Scan the QR code with Expo Go
-4. Test offline: enable airplane mode, kill and reopen app — session persists
-5. Replace `assets/images/monk.png` placeholder (currently copy of icon) with the baby-monk image for Welcome
+1. Start backend `npm run dev` (verify `GET /health` ok)
+2. Start Expo `npx expo start --clear`, scan QR
+3. Signup creates `POST /api/v1/auth/signup` user, login stores JWT, all CRUD hits `smartmonk-backend`
 
 ## Project Structure
 
 ```
 smartmonk/
-├── app/                          # Expo Router screens
-│   ├── _layout.tsx              # Root layout with auth/profile check
-│   ├── index.tsx                # Splash screen (animated)
-│   ├── (auth)/                  # Authentication flow
-│   │   ├── welcome.tsx          # Monk + Truck cross-fade, random + 3.5s toggle
-│   │   ├── login.tsx
-│   │   └── signup.tsx
-│   ├── (onboarding)/            # Profile setup
-│   │   ├── profile-setup.tsx    # 4-step wizard with DOB picker + fleet
-│   │   └── setup-complete.tsx
-│   └── (app)/                   # Main app (Tabs)
-│       ├── _layout.tsx          # Tabs with BottomTabBar (6 tabs)
-│       ├── home.tsx             # Circular avatar → Profile, ScrollView
-│       ├── suppliers.tsx        # CRUD with material, Confirmation/SuccessModal + KeyboardAvoiding
-│       ├── pumps.tsx
-│       ├── trips.tsx            # Truck single/multi, date MM/DD/YYYY, material/supplier/client, counts, financials, payment status
-│       ├── drivers.tsx          # Blood group 8-chip grid + vehicle assign + driver profile modal
-│       ├── profile.tsx          # Profile tab with Sign Out card
-│       └── edit-profile.tsx     # Hidden stack screen (home avatar deep link)
-├── components/
-│   ├── ui/                      # AppButton, AppInput, PasswordInput, AppCard, ConfirmationModal, SuccessModal, etc.
-│   ├── layout/                  # ScreenContainer, KeyboardAvoidingContainer, BottomTabBar (pill, spring)
-│   ├── auth/                    # AuthHeader, AuthForm
-│   ├── onboarding/              # ProfileAvatar (Image), BusinessTypeSelector, VehicleCountSelector
-│   └── illustrations/           # TruckIllustration, RoadAnimation
-├── constants/                   # Design tokens: colors, typography, spacing, radius, shadows
-├── hooks/                       # useAuth, useProfile, useOnboarding
-├── services/
-│   ├── storage/                 # storage, authStorage, profileStorage (migrates), supplierStorage, pumpStorage, tripStorage, driverStorage
-│   └── auth/                    # localAuth
-├── types/                       # auth, profile (Vehicle, COUNTRY_CODES, dob, countryCode, vehicles), supplier, pump, trip, driver (BLOOD_GROUPS), navigation
-├── utils/                       # validation (step1-4, dob, mobile, aadhar, licence, uniqueness, duplicateCheck), formatters, generateId (RN safe)
-├── assets/
-│   ├── icons/appIcon.png        # App icon (1.8MB)
-│   ├── images/monk.png          # Welcome monk (replace placeholder)
-│   └── ...                      # android icons, favicon, splash
-└── theme/                       # theme index
+├── app/                          # Expo Router
+│   ├── _layout.tsx              # Root with useAuth (API)
+│   ├── index.tsx                # Splash (useAuth isAuthenticated/isProfileComplete)
+│   ├── (auth)/welcome.tsx        # Monk + Truck DatePicker-shared
+│   ├── (onboarding)/profile-setup.tsx # 4-step with DatePicker
+│   └── (app)/ (Tabs)
+│       ├── _layout.tsx          # 6 tabs + BottomTabBar
+│       ├── home.tsx             # No Sign Out, ScrollView
+│       ├── suppliers.tsx        # API CRUD with material
+│       ├── pumps.tsx            # API CRUD
+│       ├── trips.tsx            # Truck inline, DatePicker inline, material/supplier inline, financials
+│       ├── drivers.tsx          # Blood 8-chip inline, vehicle inline, profile modal
+│       ├── profile.tsx          # Fleet inputs + Sign Out card
+│       └── edit-profile.tsx
+├── components/ui/               # AppButton, AppInput, DatePicker (reusable), ConfirmationModal (padding xxl), SuccessModal, etc.
+├── services/api/                # client.ts, config.ts (LAN fallback), tokenStorage.ts, auth.ts, profile.ts, suppliers.ts, pumps.ts, trips.ts, drivers.ts
+├── services/storage/            # fallback storage (migrates)
+├── types/                       # auth, profile, supplier (material), pump, trip (truck/material/supplier/client/financials), driver (BLOOD_GROUPS)
+├── utils/validation.ts          # step1-4, dob, mobile, aadhar, licence, uniqueness
+└── backendSupport.md            # Single source of truth for API contract
 ```
 
 ## Design System
 
-Centralized tokens — no hardcoded values in screens:
-
-- **Colors** - primary #2563EB, textPrimary #0F172A, border, error, success, etc.
-- **Typography** - headingLarge/Medium/Small, body, bodySmall, label, button
-- **Spacing** - xxs 2 / xs 4 / sm 8 / md 12 / base 16 / lg 20 / xl 24 / xxl 32
-- **Radius** - xs 4 / sm 8 / md 12 / lg 16 / xl 20 / full 9999
-- **Shadows** - small/medium/large with elevation
+- **Colors** #2563EB etc., **Typography**, **Spacing**, **Radius**, **Shadows** — centralized, no hardcoding
 
 ## Key Decisions
 
-- `generateId()` (timestamp+random) instead of `uuid` to avoid `crypto.getRandomValues` error in React Native Expo Go
-- `Text` link instead of `AppButton ghost` for footer “Already have an account? Sign In” to prevent clipping (`flexWrap: wrap`)
-- `useFocusEffect` on Home/Profile/Drivers to reload profile after edit, so avatar/vehicles update everywhere
-- **DOB range picker** - custom modal with Day/Month/Year columns (100y–10y range, `YYYY-MM-DD`, `daysInMonth` guard) instead of text input; single `dobButton` with calendar icon
-- **Vehicle uniqueness** - `validation.step4` + live `updateVehicleNumber` check normalized `toLowerCase().replace(/\s+/g,'')` with `Set`, marks both duplicates; `desiredVehicleN` syncs `vehicles` array length, exact chip for `2-5`/`6-10` and numeric input for `10+`
-- **Welcome Monk** - `assets/images/monk.png` + `TruckIllustration` stacked, `monkOpacity`/`carOpacity` cross-fade, random on `useFocusEffect` + 3.5s interval, dots + tap hint
-- **Bottom Nav** - custom `BottomTabBar` pill (spring scale, fade, active `primary` pill + dot), 6 tabs, `edit-profile` hidden via `href:null` + filter, icons `cube`/`flame`/`navigate`/`people`/`person-circle`
-- **Keyboard** - `KeyboardAvoidingView` (`padding` iOS / `height` Android) + `ScrollView keyboardShouldPersistTaps` in all add/edit sheets so inputs not covered
-- **CRUD** - `supplierStorage`/`pumpStorage`/`tripStorage`/`driverStorage` with `update`/`remove`, duplicate checks (contact/aadhar/licence), `ConfirmationModal` for delete, `SuccessModal` animation after add/update
-- **Suppliers → Trips** - supplier `material` (Cement/Steel), Trips **Material** dropdown from unique `suppliers.material` set, **Supplier Name** dropdown from `suppliers` (name+material)
-- **Trips** - **Truck** single-pill vs dropdown (`profile.vehicles` length 1 vs >1), **Date** `MM/DD/YYYY` picker, **Trips Count** `-/+`, **Financial Details** bordered card (Total Value/Profit/Total Expense ₹), **Payment Status** `Pending/Paid/Partial` dot picker
-- **Profile Sign Out** - moved from Home to Profile Account section as destructive card (`log-out-outline` red, `ConfirmationModal`), `scrollContent paddingBottom 140` so Save not hidden behind pill
+- `generateId()` vs `uuid` (RN `crypto` fix), `Text` link vs `AppButton ghost` (clipping), `useFocusEffect` reload, DOB `100y-10y` with `daysInMonth`, Welcome Monk cross-fade, Bottom pill `href:null` filter, `KeyboardAvoidingView` + inline dropdowns (fix nested Modal click bug), `ConfirmationModal` `padding xxl`, CRUD via `services/api/*` with `401` refresh, `DatePicker` reusable (`inline` prop) for DOB + Trip, `profile.vehicles` via `GET /api/v1/profile/vehicles` for truck dropdown, `BloodGroup` enum `prisma/schema.prisma:78` (`A+` etc. via `@map`), Financial Details card bordered.
 
 ## License
 
-MIT License
+MIT
 
 ## Author
 

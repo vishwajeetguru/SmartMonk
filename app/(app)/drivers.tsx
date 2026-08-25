@@ -11,14 +11,12 @@ import { AppButton } from '../../components/ui/AppButton';
 import { AppInput } from '../../components/ui/AppInput';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { SuccessModal } from '../../components/ui/SuccessModal';
-import { useAuth } from '../../hooks/useAuth';
-import { driverStorage } from '../../services/storage/driverStorage';
+import { driverApi } from '../../services/api/drivers';
 import { Driver, BLOOD_GROUPS } from '../../types/driver';
 import { useProfile } from '../../hooks/useProfile';
 import { validation } from '../../utils/validation';
 
 export default function DriversScreen() {
-  const { user } = useAuth();
   const { profile, loadProfile } = useProfile();
   const [list, setList] = useState<Driver[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -40,8 +38,19 @@ export default function DriversScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [viewDriver, setViewDriver] = useState<Driver | null>(null);
 
-  const load = useCallback(async () => { if (user?.id) setList(await driverStorage.getAll(user.id)); }, [user?.id]);
-  useFocusEffect(useCallback(() => { load(); if (user?.id) loadProfile(user.id); }, [load, user?.id]));
+  const load = useCallback(async () => {
+    try {
+      setList(await driverApi.getAll());
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      loadProfile('');
+    }, [load])
+  );
 
   const openAdd = () => {
     setEditing(null); setFullName(''); setContact(''); setBloodGroup(''); setAadhar(''); setLicence(''); setAddress(''); setSalary(''); setAssignedVehicle(''); setErrors({}); setShowAdd(true);
@@ -69,18 +78,30 @@ export default function DriversScreen() {
   };
 
   const handleSave = async () => {
-    if (!validate() || !user?.id) return;
+    if (!validate()) return;
     setSaving(true);
-    if (editing) {
-      await driverStorage.update(editing.id, { fullName, contact, bloodGroup: bloodGroup as any, aadhar, licence, address, salary, assignedVehicle });
-      setSuccessMsg('Driver updated successfully');
-    } else {
-      await driverStorage.add(user.id, { fullName, contact, bloodGroup: bloodGroup as any, aadhar, licence, address, salary, assignedVehicle });
-      setSuccessMsg('Driver added successfully');
+    try {
+      if (editing) {
+        await driverApi.update(editing.id, { fullName, contact, bloodGroup: bloodGroup as any, aadhar, licence, address, salary, assignedVehicle });
+        setSuccessMsg('Driver updated successfully');
+      } else {
+        await driverApi.add({ fullName, contact, bloodGroup: bloodGroup as any, aadhar, licence, address, salary, assignedVehicle });
+        setSuccessMsg('Driver added successfully');
+      }
+      setShowAdd(false); setShowSuccess(true); load();
+    } catch (e: any) {
+      setErrors({ fullName: e?.message || 'Failed' });
+    } finally {
+      setSaving(false);
     }
-    setShowAdd(false); setSaving(false); setShowSuccess(true); load();
   };
-  const handleDelete = async () => { if (!deleteId) return; await driverStorage.remove(deleteId); setDeleteId(null); load(); };
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await driverApi.remove(deleteId);
+    } catch {}
+    setDeleteId(null); load();
+  };
   const vehicles = profile?.vehicles || [];
 
   return (
@@ -112,13 +133,53 @@ export default function DriversScreen() {
               <AppInput label="Full Name *" value={fullName} onChangeText={setFullName} placeholder="Driver name" error={errors.fullName} />
               <AppInput label="Contact Number *" value={contact} onChangeText={setContact} placeholder="Phone" keyboardType="phone-pad" error={errors.contact} />
               <Text style={styles.label}>Blood Group</Text>
-              <TouchableOpacity style={styles.picker} onPress={() => setShowBlood(true)}><Text style={bloodGroup ? styles.pickerText : styles.pickerPlaceholder}>{bloodGroup || 'Select blood group'}</Text><Ionicons name="chevron-down" size={18} color={colors.textSecondary} /></TouchableOpacity>
+              <TouchableOpacity style={styles.picker} onPress={() => setShowBlood((v) => !v)} activeOpacity={0.7}><Text style={bloodGroup ? styles.pickerText : styles.pickerPlaceholder}>{bloodGroup || 'Select blood group'}</Text><Ionicons name={showBlood ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} /></TouchableOpacity>
+              {showBlood && (
+                <View style={styles.inlineDropdown}>
+                  <View style={styles.inlineHeader}>
+                    <Text style={styles.inlineTitle}>Select Blood Group • 8 options</Text>
+                    <TouchableOpacity onPress={() => setShowBlood(false)}><Ionicons name="close" size={18} color={colors.textSecondary} /></TouchableOpacity>
+                  </View>
+                  <View style={styles.bloodGrid}>
+                    {(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const).map((b) => (
+                      <TouchableOpacity key={b} style={[styles.bloodChip, bloodGroup === b && styles.bloodChipActive]} onPress={() => { setBloodGroup(b); setShowBlood(false); }} activeOpacity={0.7}>
+                        <Text style={[styles.bloodChipText, bloodGroup === b && styles.bloodChipTextActive]}>{b}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TouchableOpacity style={styles.clearRow} onPress={() => { setBloodGroup(''); setShowBlood(false); }}>
+                    <Ionicons name="close-circle-outline" size={18} color={colors.textSecondary} />
+                    <Text style={styles.clearText}>Clear Selection</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <AppInput label="Aadhar Card" value={aadhar} onChangeText={setAadhar} placeholder="12-digit Aadhar" keyboardType="numeric" error={errors.aadhar} />
               <AppInput label="Driving Licence *" value={licence} onChangeText={setLicence} placeholder="Licence number" error={errors.licence} autoCapitalize="characters" />
               <AppInput label="Address" value={address} onChangeText={setAddress} placeholder="Address" />
               <AppInput label="Salary" value={salary} onChangeText={setSalary} placeholder="Monthly salary" keyboardType="numeric" />
               <Text style={styles.label}>Assign to Vehicle</Text>
-              <TouchableOpacity style={styles.picker} onPress={() => setShowVehicle(true)}><Text style={assignedVehicle ? styles.pickerText : styles.pickerPlaceholder}>{assignedVehicle || (vehicles.length ? 'Select vehicle' : 'No vehicles - add in profile')}</Text><Ionicons name="chevron-down" size={18} color={colors.textSecondary} /></TouchableOpacity>
+              <TouchableOpacity style={styles.picker} onPress={() => setShowVehicle((v) => !v)} activeOpacity={0.7}><Text style={assignedVehicle ? styles.pickerText : styles.pickerPlaceholder}>{assignedVehicle || (vehicles.length ? 'Select vehicle' : 'No vehicles - add in profile')}</Text><Ionicons name={showVehicle ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} /></TouchableOpacity>
+              {showVehicle && (
+                <View style={styles.inlineDropdown}>
+                  <View style={styles.inlineHeader}>
+                    <Text style={styles.inlineTitle}>Assign Vehicle — {vehicles.length} available</Text>
+                    <TouchableOpacity onPress={() => setShowVehicle(false)}><Ionicons name="close" size={18} color={colors.textSecondary} /></TouchableOpacity>
+                  </View>
+                  <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                    <TouchableOpacity style={styles.option} onPress={() => { setAssignedVehicle(''); setShowVehicle(false); }}><Text style={styles.optionText}>None</Text>{!assignedVehicle && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
+                    {vehicles.length === 0 ? (
+                      <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                        <Ionicons name="car-outline" size={28} color={colors.muted} />
+                        <Text style={{ ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center', marginTop: 6 }}>No vehicles found.{'\n'}Add in Profile → Fleet step.</Text>
+                      </View>
+                    ) : (
+                      vehicles.map((v) => (
+                        <TouchableOpacity key={v.id} style={styles.option} onPress={() => { setAssignedVehicle(v.number); setShowVehicle(false); }}><Text style={styles.optionText}>{v.number}</Text>{assignedVehicle === v.number && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
+              )}
               <View style={{ height: 12 }} />
               <AppButton title={editing ? 'Update Driver' : 'Save Driver'} onPress={handleSave} loading={saving} />
             </ScrollView>
@@ -126,62 +187,7 @@ export default function DriversScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Modal visible={showBlood} transparent animationType="slide" onRequestClose={() => setShowBlood(false)}>
-        <View style={styles.overlayCenter}>
-          <View style={[styles.smallSheet, { maxHeight: '85%', width: '90%' }]}>
-            <View style={styles.sheetHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="water" size={20} color={colors.error} />
-                </View>
-                <View>
-                  <Text style={styles.smallTitle}>Select Blood Group</Text>
-                  <Text style={{ ...typography.caption, color: colors.textSecondary }}>Tap to select • 8 options</Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setShowBlood(false)} style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="close" size={22} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.bloodGrid}>
-              {(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const).map((b) => (
-                <TouchableOpacity key={b} style={[styles.bloodChip, bloodGroup === b && styles.bloodChipActive]} onPress={() => { setBloodGroup(b); setShowBlood(false); }} activeOpacity={0.7}>
-                  <Text style={[styles.bloodChipText, bloodGroup === b && styles.bloodChipTextActive]}>{b}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity style={[styles.bloodActionBtn, { backgroundColor: colors.backgroundSecondary, flex: 1 }]} onPress={() => { setBloodGroup(''); setShowBlood(false); }}>
-                <Text style={{ ...typography.bodySmall, fontWeight: '600', color: colors.textSecondary }}>Clear</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.bloodActionBtn, { backgroundColor: colors.primary, flex: 1 }]} onPress={() => setShowBlood(false)}>
-                <Text style={{ ...typography.bodySmall, fontWeight: '600', color: colors.white }}>Done</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
-      <Modal visible={showVehicle} transparent animationType="fade" onRequestClose={() => setShowVehicle(false)}>
-        <TouchableOpacity style={styles.overlayCenter} activeOpacity={1} onPress={() => setShowVehicle(false)}>
-          <View style={[styles.smallSheet, { maxHeight: '80%' }]}>
-            <Text style={styles.smallTitle}>Assign Vehicle — {vehicles.length} available</Text>
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 320 }}>
-              <TouchableOpacity style={styles.option} onPress={() => { setAssignedVehicle(''); setShowVehicle(false); }}><Text style={styles.optionText}>None</Text>{!assignedVehicle && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
-              {vehicles.length === 0 ? (
-                <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-                  <Ionicons name="car-outline" size={32} color={colors.muted} />
-                  <Text style={{ ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center', marginTop: 8 }}>No vehicles found.{'\n'}Add vehicles in Profile → Edit Profile → Fleet step.</Text>
-                </View>
-              ) : (
-                vehicles.map((v) => (
-                  <TouchableOpacity key={v.id} style={styles.option} onPress={() => { setAssignedVehicle(v.number); setShowVehicle(false); }}><Text style={styles.optionText}>{v.number}</Text>{assignedVehicle === v.number && <Ionicons name="checkmark" size={18} color={colors.primary} />}</TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       <Modal visible={!!viewDriver} transparent animationType="fade" onRequestClose={() => setViewDriver(null)}>
         <View style={styles.overlayCenter}>
@@ -243,6 +249,9 @@ const styles = StyleSheet.create({
   pickerPlaceholder: { ...typography.body, color: colors.textTertiary },
   option: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   optionText: { ...typography.body, color: colors.textPrimary },
+  inlineDropdown: { backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.base, marginTop: -4 },
+  inlineHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm, paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  inlineTitle: { ...typography.labelSmall, color: colors.textSecondary, fontWeight: '600' },
   bloodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 8 },
   bloodChip: {
     flexDirection: 'row',

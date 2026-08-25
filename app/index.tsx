@@ -13,12 +13,10 @@ import { colors } from '../constants/colors';
 import { typography } from '../constants/typography';
 import { spacing } from '../constants/spacing';
 import { useAuth } from '../hooks/useAuth';
-import { authStorage } from '../services/storage/authStorage';
-import { profileStorage } from '../services/storage/profileStorage';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isProfileComplete, isLoading } = useAuth();
   const [isReady, setIsReady] = useState(false);
 
   const logoOpacity = useSharedValue(0);
@@ -60,29 +58,15 @@ export default function SplashScreen() {
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
-
-    const navigate = async () => {
-      try {
-        const session = await authStorage.getSession();
-
-        if (session?.isLoggedIn && session.userId) {
-          const profileComplete = await profileStorage.isProfileComplete(session.userId);
-          if (profileComplete) {
-            router.replace('/(app)/home');
-          } else {
-            router.replace('/(onboarding)/profile-setup');
-          }
-        } else {
-          router.replace('/(auth)/welcome');
-        }
-      } catch (error) {
-        router.replace('/(auth)/welcome');
-      }
-    };
-
-    navigate();
-  }, [isReady]);
+    if (!isReady || isLoading) return;
+    if (isAuthenticated && isProfileComplete) {
+      router.replace('/(app)/home');
+    } else if (isAuthenticated && !isProfileComplete) {
+      router.replace('/(onboarding)/profile-setup');
+    } else {
+      router.replace('/(auth)/welcome');
+    }
+  }, [isReady, isAuthenticated, isProfileComplete, isLoading]);
 
   return (
     <View style={styles.container}>

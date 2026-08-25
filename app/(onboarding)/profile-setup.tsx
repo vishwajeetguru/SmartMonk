@@ -19,6 +19,7 @@ import { KeyboardAvoidingContainer } from '../../components/layout/KeyboardAvoid
 import { AppButton } from '../../components/ui/AppButton';
 import { AppInput } from '../../components/ui/AppInput';
 import { ErrorMessage } from '../../components/ui/ErrorMessage';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { ProfileAvatar } from '../../components/onboarding/ProfileAvatar';
 import { BusinessTypeSelector } from '../../components/onboarding/BusinessTypeSelector';
 import { VehicleCountSelector } from '../../components/onboarding/VehicleCountSelector';
@@ -43,10 +44,6 @@ export default function ProfileSetupScreen() {
   const [fullName, setFullName] = useState('');
   const [dob, setDob] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [showDobModal, setShowDobModal] = useState(false);
-  const [tempYear, setTempYear] = useState(1995);
-  const [tempMonth, setTempMonth] = useState(6);
-  const [tempDay, setTempDay] = useState(15);
 
   // Step 2
   const [countryCode, setCountryCode] = useState<string>('+91');
@@ -67,42 +64,6 @@ export default function ProfileSetupScreen() {
   useEffect(() => {
     if (user) setFullName(user.name);
   }, [user]);
-
-  const openDobPicker = () => {
-    if (dob) {
-      const parts = dob.split('-');
-      if (parts.length === 3) {
-        const y = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        const d = parseInt(parts[2], 10);
-        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-          setTempYear(y);
-          setTempMonth(m);
-          setTempDay(d);
-        }
-      }
-    }
-    setShowDobModal(true);
-  };
-
-  const formatDobDisplay = (value: string) => {
-    if (!value) return '';
-    const [y, m, d] = value.split('-');
-    if (!y || !m || !d) return value;
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const idx = parseInt(m, 10) - 1;
-    return `${d} ${monthNames[idx] || m} ${y}`;
-  };
-
-  const confirmDob = () => {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const daysInMonth = new Date(tempYear, tempMonth, 0).getDate();
-    const safeDay = Math.min(tempDay, daysInMonth);
-    const newDob = `${tempYear}-${pad(tempMonth)}-${pad(safeDay)}`;
-    setDob(newDob);
-    if (fieldErrors.dob) setFieldErrors((p) => ({ ...p, dob: '' }));
-    setShowDobModal(false);
-  };
 
   const selectedCountry: Country | undefined = useMemo(
     () => COUNTRY_CODES.find((c) => c.code === countryCode),
@@ -306,105 +267,17 @@ export default function ProfileSetupScreen() {
         leftIcon={<Ionicons name="person-outline" size={20} color={colors.textSecondary} />}
       />
 
-      <Text style={styles.label}>Date of Birth *</Text>
-      <TouchableOpacity
-        style={[
-          styles.dobButton,
-          fieldErrors.dob ? styles.dobButtonError : null,
-        ]}
-        onPress={openDobPicker}
-        activeOpacity={0.7}
-      >
-        <View style={styles.dobButtonLeft}>
-          <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
-          <Text style={[styles.dobButtonText, !dob && styles.dobPlaceholder]}>
-            {dob ? formatDobDisplay(dob) : 'Select your date of birth'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
-      {fieldErrors.dob ? <Text style={styles.errorText}>{fieldErrors.dob}</Text> : null}
-      <Text style={styles.helperText}>We use this to personalize your experience • Tap to pick date</Text>
-
-      <Modal visible={showDobModal} transparent animationType="fade" onRequestClose={() => setShowDobModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.dobModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Date of Birth</Text>
-              <TouchableOpacity onPress={() => setShowDobModal(false)}>
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            {(() => {
-              const now = new Date();
-              const minYear = now.getFullYear() - 100;
-              const maxYear = now.getFullYear() - 10;
-              const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i);
-              const daysInMonth = new Date(tempYear, tempMonth, 0).getDate();
-              const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-              // ensure tempDay valid
-              const safeDay = Math.min(tempDay, daysInMonth);
-              return (
-                <View style={styles.dobPickerRow}>
-                  <View style={styles.dobPickerCol}>
-                    <Text style={styles.dobPickerLabel}>Day</Text>
-                    <ScrollView style={styles.dobPickerScroll} showsVerticalScrollIndicator={false}>
-                      {days.map((d) => (
-                        <TouchableOpacity
-                          key={d}
-                          style={[styles.dobPickerItem, safeDay === d && styles.dobPickerItemActive]}
-                          onPress={() => setTempDay(d)}
-                        >
-                          <Text style={[styles.dobPickerItemText, safeDay === d && styles.dobPickerItemTextActive]}>{String(d).padStart(2, '0')}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                  <View style={styles.dobPickerCol}>
-                    <Text style={styles.dobPickerLabel}>Month</Text>
-                    <ScrollView style={styles.dobPickerScroll} showsVerticalScrollIndicator={false}>
-                      {months.map((m, idx) => (
-                        <TouchableOpacity
-                          key={m}
-                          style={[styles.dobPickerItem, tempMonth === idx + 1 && styles.dobPickerItemActive]}
-                          onPress={() => setTempMonth(idx + 1)}
-                        >
-                          <Text style={[styles.dobPickerItemText, tempMonth === idx + 1 && styles.dobPickerItemTextActive]}>{m}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                  <View style={styles.dobPickerCol}>
-                    <Text style={styles.dobPickerLabel}>Year</Text>
-                    <ScrollView style={styles.dobPickerScroll} showsVerticalScrollIndicator={false}>
-                      {years.map((y) => (
-                        <TouchableOpacity
-                          key={y}
-                          style={[styles.dobPickerItem, tempYear === y && styles.dobPickerItemActive]}
-                          onPress={() => setTempYear(y)}
-                        >
-                          <Text style={[styles.dobPickerItemText, tempYear === y && styles.dobPickerItemTextActive]}>{y}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              );
-            })()}
-
-            <View style={styles.dobModalFooter}>
-              <TouchableOpacity style={styles.dobCancelButton} onPress={() => setShowDobModal(false)}>
-                <Text style={styles.dobCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.dobConfirmButton} onPress={confirmDob}>
-                <Text style={styles.dobConfirmText}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <DatePicker
+        label="Date of Birth *"
+        value={dob}
+        onChange={(v) => {
+          setDob(v);
+          if (fieldErrors.dob) setFieldErrors((p) => ({ ...p, dob: '' }));
+        }}
+        placeholder="Select your date of birth"
+        error={fieldErrors.dob}
+      />
+      <Text style={styles.helperText}>We use this to personalize your experience</Text>
     </View>
   );
 
@@ -638,7 +511,7 @@ const styles = StyleSheet.create({
   stepTitle: { ...typography.headingMedium, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
   stepSubtitle: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl },
   label: { ...typography.label, color: colors.textPrimary, marginBottom: spacing.xs },
-  helperText: { ...typography.caption, color: colors.textSecondary, marginTop: -spacing.sm, marginBottom: spacing.base },
+  helperText: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, marginBottom: spacing.xl, paddingBottom: spacing.sm, lineHeight: 16 },
   errorText: { ...typography.caption, color: colors.error, marginTop: spacing.xs, marginBottom: spacing.sm },
   mobileRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   countryButton: {
@@ -718,6 +591,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     backgroundColor: colors.white,
     minHeight: 52,
+    marginBottom: spacing.xs,
   },
   dobButtonError: { borderColor: colors.error },
   dobButtonLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

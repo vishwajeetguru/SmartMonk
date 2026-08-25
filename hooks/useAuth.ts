@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, LoginCredentials, SignupCredentials, AuthError } from '../types/auth';
-import { authStorage } from '../services/storage/authStorage';
-import { profileStorage } from '../services/storage/profileStorage';
 import { validation } from '../utils/validation';
+import { authApi } from '../services/api/auth';
+import { tokenStorage } from '../services/api/tokenStorage';
+import { profileApi } from '../services/api/profile';
 
 interface UseAuthReturn {
   user: User | null;
@@ -14,6 +15,16 @@ interface UseAuthReturn {
   signup: (credentials: SignupCredentials) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
+}
+
+function mapApiUser(apiUser: any): User {
+  return {
+    id: apiUser.id,
+    name: apiUser.name,
+    email: apiUser.email,
+    password: '', // not stored
+    createdAt: apiUser.createdAt || new Date().toISOString(),
+  };
 }
 
 export function useAuth(): UseAuthReturn {
@@ -30,20 +41,19 @@ export function useAuth(): UseAuthReturn {
   const checkAuthState = async () => {
     try {
       setIsLoading(true);
-      const session = await authStorage.getSession();
-
-      if (session?.isLoggedIn && session.userId) {
-        const users = await authStorage.getUsers();
-        const foundUser = Object.values(users).find((u) => u.id === session.userId);
-
-        if (foundUser) {
-          setUser(foundUser);
-          setIsAuthenticated(true);
-          const profileComplete = await profileStorage.isProfileComplete(foundUser.id);
-          setIsProfileComplete(profileComplete);
-        } else {
-          await authStorage.clearSession();
+      const token = await tokenStorage.getAccessToken();
+      const apiUser = await tokenStorage.getUser();
+      if (token && apiUser) {
+        setUser(mapApiUser(apiUser));
+        setIsAuthenticated(true);
+        try {
+          const profile = await profileApi.get();
+          setIsProfileComplete(!!profile?.completed);
+        } catch {
+          setIsProfileComplete(false);
         }
+      } else {
+        setIsAuthenticated(false);
       }
     } catch (err) {
       console.error('Error checking auth state:', err);
@@ -63,16 +73,18 @@ export function useAuth(): UseAuthReturn {
         return false;
       }
 
-      const loggedInUser = await authStorage.login(credentials);
-      setUser(loggedInUser);
+      const res = await authApi.login({ email: credentials.email.toLowerCase().trim(), password: credentials.password });
+      setUser(mapApiUser(res.user));
       setIsAuthenticated(true);
-
-      const profileComplete = await profileStorage.isProfileComplete(loggedInUser.id);
-      setIsProfileComplete(profileComplete);
-
+      try {
+        const profile = await profileApi.get();
+        setIsProfileComplete(!!profile?.completed);
+      } catch {
+        setIsProfileComplete(false);
+      }
       return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
+    } catch (err: any) {
+      const message = err?.message || 'Login failed. Please try again.';
       setError({ message });
       return false;
     } finally {
@@ -94,15 +106,24 @@ export function useAuth(): UseAuthReturn {
         return false;
       }
 
-      const newUser = await authStorage.signup(credentials);
-      setUser(newUser);
+      const res = await authApi.signup({
+        name: credentials.name.trim(),
+        email: credentials.email.toLowerCase().trim(),
+        password: credentials.password,
+        confirmPassword: credentials.confirmPassword,
+      });
+      setUser(mapApiUser(res.user));
       setIsAuthenticated(true);
       setIsProfileComplete(false);
-
       return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Signup failed. Please try again.';
-      setError({ message });
+    } catch (err: any) {
+      const message = err?.message || 'Signup failed. Please try again.';
+      // Handle 409 duplicate
+      if (err?.status === 409) {
+        setError({ message: 'An account with this email already exists.' });
+      } else {
+        setError({ message });
+      }
       return false;
     } finally {
       setIsLoading(false);
@@ -111,7 +132,7 @@ export function useAuth(): UseAuthReturn {
 
   const logout = useCallback(async () => {
     try {
-      await authStorage.logout();
+      await authApi.logout();
       setUser(null);
       setIsAuthenticated(false);
       setIsProfileComplete(false);

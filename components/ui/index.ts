@@ -8,3 +8,4 @@ export { LoadingIndicator } from './LoadingIndicator';
 export { ErrorMessage } from './ErrorMessage';
 export { ConfirmationModal } from './ConfirmationModal';
 export { SuccessModal } from './SuccessModal';
+export { DatePicker } from './DatePicker';

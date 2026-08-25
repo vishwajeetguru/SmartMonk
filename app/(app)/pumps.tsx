@@ -11,13 +11,11 @@ import { AppButton } from '../../components/ui/AppButton';
 import { AppInput } from '../../components/ui/AppInput';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { SuccessModal } from '../../components/ui/SuccessModal';
-import { useAuth } from '../../hooks/useAuth';
-import { pumpStorage } from '../../services/storage/pumpStorage';
+import { pumpApi } from '../../services/api/pumps';
 import { Pump } from '../../types/pump';
 import { validation } from '../../utils/validation';
 
 export default function PumpsScreen() {
-  const { user } = useAuth();
   const [list, setList] = useState<Pump[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Pump | null>(null);
@@ -30,7 +28,13 @@ export default function PumpsScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  const load = useCallback(async () => { if (user?.id) setList(await pumpStorage.getAll(user.id)); }, [user?.id]);
+  const load = useCallback(async () => {
+    try {
+      setList(await pumpApi.getAll());
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const openAdd = () => { setEditing(null); setName(''); setContact(''); setLocation(''); setErrors({}); setShowAdd(true); };
@@ -49,13 +53,30 @@ export default function PumpsScreen() {
   };
 
   const handleSave = async () => {
-    if (!validate() || !user?.id) return;
+    if (!validate()) return;
     setSaving(true);
-    if (editing) { await pumpStorage.update(editing.id, { name, contact, location }); setSuccessMsg('Pump updated successfully'); }
-    else { await pumpStorage.add(user.id, { name, contact, location }); setSuccessMsg('Pump added successfully'); }
-    setShowAdd(false); setSaving(false); setShowSuccess(true); load();
+    try {
+      if (editing) {
+        await pumpApi.update(editing.id, { name, contact, location });
+        setSuccessMsg('Pump updated successfully');
+      } else {
+        await pumpApi.add({ name, contact, location });
+        setSuccessMsg('Pump added successfully');
+      }
+      setShowAdd(false); setShowSuccess(true); load();
+    } catch (e: any) {
+      setErrors({ name: e?.message || 'Failed' });
+    } finally {
+      setSaving(false);
+    }
   };
-  const handleDelete = async () => { if (!deleteId) return; await pumpStorage.remove(deleteId); setDeleteId(null); load(); };
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await pumpApi.remove(deleteId);
+    } catch {}
+    setDeleteId(null); load();
+  };
 
   return (
     <ScreenContainer safeArea style={{ backgroundColor: colors.background }}>

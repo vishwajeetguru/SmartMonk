@@ -11,13 +11,11 @@ import { AppButton } from '../../components/ui/AppButton';
 import { AppInput } from '../../components/ui/AppInput';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
 import { SuccessModal } from '../../components/ui/SuccessModal';
-import { useAuth } from '../../hooks/useAuth';
-import { supplierStorage } from '../../services/storage/supplierStorage';
+import { supplierApi } from '../../services/api/suppliers';
 import { Supplier } from '../../types/supplier';
 import { validation } from '../../utils/validation';
 
 export default function SuppliersScreen() {
-  const { user } = useAuth();
   const [list, setList] = useState<Supplier[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
@@ -31,7 +29,13 @@ export default function SuppliersScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  const load = useCallback(async () => { if (user?.id) setList(await supplierStorage.getAll(user.id)); }, [user?.id]);
+  const load = useCallback(async () => {
+    try {
+      setList(await supplierApi.getAll());
+    } catch (e: any) {
+      console.error('Failed to load suppliers', e);
+    }
+  }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const openAdd = () => { setEditing(null); setName(''); setContact(''); setMaterial(''); setAddress(''); setErrors({}); setShowAdd(true); };
@@ -54,20 +58,30 @@ export default function SuppliersScreen() {
 
   const handleSave = async () => {
     if (!validate()) return;
-    if (!user?.id) return;
     setSaving(true);
-    if (editing) {
-      await supplierStorage.update(editing.id, { name, contact, material, address });
-      setSuccessMsg('Supplier updated successfully');
-    } else {
-      await supplierStorage.add(user.id, { name, contact, material, address });
-      setSuccessMsg('Supplier added successfully');
+    try {
+      if (editing) {
+        await supplierApi.update(editing.id, { name, contact, material, address });
+        setSuccessMsg('Supplier updated successfully');
+      } else {
+        await supplierApi.add({ name, contact, material, address });
+        setSuccessMsg('Supplier added successfully');
+      }
+      setShowAdd(false); setShowSuccess(true); load();
+    } catch (e: any) {
+      const msg = e?.message || 'Failed to save supplier';
+      setErrors({ name: msg });
+    } finally {
+      setSaving(false);
     }
-    setShowAdd(false); setSaving(false); setShowSuccess(true); load();
   };
   const handleDelete = async () => {
     if (!deleteId) return;
-    await supplierStorage.remove(deleteId);
+    try {
+      await supplierApi.remove(deleteId);
+    } catch (e) {
+      console.error(e);
+    }
     setDeleteId(null); load();
   };
 

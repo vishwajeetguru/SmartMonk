@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Profile, ProfileFormData } from '../types/profile';
-import { profileStorage } from '../services/storage/profileStorage';
 import { validation } from '../utils/validation';
+import { profileApi } from '../services/api/profile';
 
 interface UseProfileReturn {
   profile: Profile | null;
@@ -20,22 +20,22 @@ export function useProfile(): UseProfileReturn {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProfile = useCallback(async (userId: string) => {
+  const loadProfile = useCallback(async (_userId: string) => {
     try {
       setIsLoading(true);
-      const existingProfile = await profileStorage.getProfile(userId);
+      const existingProfile = await profileApi.get();
       setProfile(existingProfile);
       setIsProfileComplete(existingProfile?.completed || false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading profile:', err);
-      setError('Failed to load profile. Please try again.');
+      setError(err?.message || 'Failed to load profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const saveProfile = useCallback(
-    async (userId: string, data: ProfileFormData): Promise<boolean> => {
+    async (_userId: string, data: ProfileFormData): Promise<boolean> => {
       try {
         setError(null);
         setIsLoading(true);
@@ -46,14 +46,29 @@ export function useProfile(): UseProfileReturn {
           return false;
         }
 
-        const savedProfile = await profileStorage.saveProfile(userId, data);
+        let profileImageUrl: string | null = (data as any).profileImageUrl ?? data.profileImage;
+        // If it's a local file, upload first
+        if (profileImageUrl && profileImageUrl.startsWith('file://')) {
+          try {
+            profileImageUrl = await profileApi.uploadImage(profileImageUrl);
+          } catch (e) {
+            console.warn('Image upload failed, saving local uri as is', e);
+          }
+        }
+
+        const payload: any = {
+          ...data,
+          profileImageUrl,
+          // Ensure vehicles are in correct shape
+          vehicles: data.vehicles || [],
+        };
+        const savedProfile = await profileApi.upsert(payload);
         setProfile(savedProfile);
         setIsProfileComplete(true);
-
         return true;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error saving profile:', err);
-        setError('Failed to save profile. Please try again.');
+        setError(err?.message || 'Failed to save profile. Please try again.');
         return false;
       } finally {
         setIsLoading(false);
@@ -63,29 +78,32 @@ export function useProfile(): UseProfileReturn {
   );
 
   const updateProfile = useCallback(
-    async (userId: string, data: Partial<ProfileFormData>): Promise<boolean> => {
+    async (_userId: string, data: Partial<ProfileFormData>): Promise<boolean> => {
       try {
         setError(null);
         setIsLoading(true);
-
-        const updatedProfile = await profileStorage.updateProfile(userId, data);
-
-        if (updatedProfile) {
-          setProfile(updatedProfile);
-          setIsProfileComplete(updatedProfile.completed);
-          return true;
+        // For partial update, just upsert with existing profile merged
+        const current = profile;
+        const merged: any = { ...(current as any), ...data };
+        // Handle image upload if needed
+        if (data.profileImage && data.profileImage.startsWith('file://')) {
+          try {
+            merged.profileImageUrl = await profileApi.uploadImage(data.profileImage);
+          } catch {}
         }
-
-        return false;
-      } catch (err) {
+        const updatedProfile = await profileApi.upsert(merged);
+        setProfile(updatedProfile);
+        setIsProfileComplete(updatedProfile.completed);
+        return true;
+      } catch (err: any) {
         console.error('Error updating profile:', err);
-        setError('Failed to update profile. Please try again.');
+        setError(err?.message || 'Failed to update profile. Please try again.');
         return false;
       } finally {
         setIsLoading(false);
       }
     },
-    []
+    [profile]
   );
 
   const clearError = useCallback(() => {
