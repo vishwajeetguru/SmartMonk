@@ -8,13 +8,15 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface TruckIllustrationProps {
   size?: number;
 }
 
 export function TruckIllustration({ size = 200 }: TruckIllustrationProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const translateX = useSharedValue(0);
 
   React.useEffect(() => {
@@ -53,7 +55,7 @@ export function TruckIllustration({ size = 200 }: TruckIllustrationProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',

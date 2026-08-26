@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -19,6 +20,9 @@ import { validation } from '../../utils/validation';
 import { BusinessType, VehicleCount } from '../../types/profile';
 
 export default function EditProfileScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const { profile, isLoading, error, saveProfile, loadProfile, clearError } = useProfile();
@@ -90,24 +94,24 @@ export default function EditProfileScreen() {
     });
 
     if (success) {
-      Alert.alert('Success', 'Profile updated successfully!', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert(t('profile.updated'), t('profile.updatedMsg'), [
+        { text: t('common.done'), onPress: () => router.back() },
       ]);
     }
   };
 
   return (
-    <ScreenContainer safeArea style={styles.container}>
+    <ScreenContainer safeArea padded={false} style={styles.container}>
       <KeyboardAvoidingContainer>
         <View style={styles.header}>
           <AppButton
-            title=""
+            title={t('common.back')}
             onPress={() => router.back()}
             variant="ghost"
             size="small"
             style={styles.backButton}
           />
-          <Text style={styles.headerTitle}>Edit Profile</Text>
+          <Text style={styles.headerTitle}>{t('screen.profile')}</Text>
           <View style={styles.headerRight} />
         </View>
 
@@ -126,10 +130,10 @@ export default function EditProfileScreen() {
             />
 
             <AppInput
-              label="Full Name *"
+              label={t('form.fullNameRequired')}
               value={fullName}
               onChangeText={setFullName}
-              placeholder="Enter your full name"
+              placeholder={t('form.fullNamePlaceholder')}
               autoCapitalize="words"
               error={fieldErrors.fullName}
               leftIcon={
@@ -138,10 +142,10 @@ export default function EditProfileScreen() {
             />
 
             <AppInput
-              label="Business Name"
+              label={t('form.businessName')}
               value={businessName}
               onChangeText={setBusinessName}
-              placeholder="Enter business name (optional)"
+              placeholder={t('form.businessNamePlaceholder')}
               autoCapitalize="words"
               leftIcon={
                 <Ionicons name="business-outline" size={20} color={colors.textSecondary} />
@@ -149,10 +153,10 @@ export default function EditProfileScreen() {
             />
 
             <AppInput
-              label="Mobile Number *"
+              label={t('form.mobileRequired')}
               value={mobile}
               onChangeText={setMobile}
-              placeholder="Enter mobile number"
+              placeholder={t('form.mobilePlaceholder')}
               keyboardType="phone-pad"
               error={fieldErrors.mobile}
               leftIcon={
@@ -171,10 +175,10 @@ export default function EditProfileScreen() {
             />
 
             <AppInput
-              label="Location"
+              label={t('form.location')}
               value={location}
               onChangeText={setLocation}
-              placeholder="Enter your location (optional)"
+              placeholder={t('form.locationPlaceholder')}
               autoCapitalize="words"
               leftIcon={
                 <Ionicons name="location-outline" size={20} color={colors.textSecondary} />
@@ -182,10 +186,10 @@ export default function EditProfileScreen() {
             />
 
             <AppInput
-              label="GST Number"
+              label={t('form.gstNumber')}
               value={gstNumber}
               onChangeText={setGstNumber}
-              placeholder="Enter GST number (optional)"
+              placeholder={t('form.gstPlaceholder')}
               autoCapitalize="characters"
               leftIcon={
                 <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />
@@ -193,7 +197,7 @@ export default function EditProfileScreen() {
             />
 
             <AppButton
-              title="Save Changes"
+              title={t('profile.save')}
               onPress={handleSaveProfile}
               variant="primary"
               size="large"
@@ -207,7 +211,7 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     backgroundColor: colors.background,
   },
@@ -232,8 +236,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.base,
   },
   form: {
     flex: 1,

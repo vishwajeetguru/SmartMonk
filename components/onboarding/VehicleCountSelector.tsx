@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -17,9 +18,12 @@ export function VehicleCountSelector({
   onSelect,
   error,
 }: VehicleCountSelectorProps) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Number of Vehicles</Text>
+      <Text style={styles.label}>{t('form.vehicleCount')}</Text>
       <View style={styles.optionsContainer}>
         {VEHICLE_COUNT_OPTIONS.map((count) => (
           <TouchableOpacity
@@ -47,7 +51,7 @@ export function VehicleCountSelector({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.base,
   },
@@ -70,7 +74,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   optionSelected: {
     borderColor: colors.primary,

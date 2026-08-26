@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TextProps, StyleSheet } from 'react-native';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { typography, TypographyKey } from '../../constants/typography';
 
 interface AppTextProps extends TextProps {
@@ -18,6 +18,8 @@ export function AppText({
   children,
   ...props
 }: AppTextProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const textStyles = [
     styles.base,
     typography[variant],
@@ -33,6 +35,6 @@ export function AppText({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   base: {},
 });

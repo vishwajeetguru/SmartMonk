@@ -12,7 +12,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -36,6 +36,8 @@ export function AppInput({
   style,
   ...props
 }: AppInputProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [isFocused, setIsFocused] = useState(false);
   const borderColor = useSharedValue<string>(colors.border);
 
@@ -81,7 +83,7 @@ export function AppInput({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.base,
   },
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     minHeight: 52,
   },
   inputFocused: {

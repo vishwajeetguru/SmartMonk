@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -13,9 +12,14 @@ import { PasswordInput } from '../../components/ui/PasswordInput';
 import { ErrorMessage } from '../../components/ui/ErrorMessage';
 import { useAuth } from '../../hooks/useAuth';
 import { validation } from '../../utils/validation';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
   const { signup, isLoading, error, clearError } = useAuth();
 
   const [name, setName] = useState('');
@@ -65,7 +69,7 @@ export default function SignupScreen() {
   };
 
   return (
-    <ScreenContainer safeArea style={styles.container}>
+    <ScreenContainer safeArea padded={false} style={styles.container}>
       <KeyboardAvoidingContainer>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -78,9 +82,9 @@ export default function SignupScreen() {
                 <Text style={styles.logoText}>SM</Text>
               </View>
             </View>
-            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.title}>{t('auth.signupTitle')}</Text>
             <Text style={styles.subtitle}>
-              Start managing your transport business
+              {t('auth.signupSubtitle')}
             </Text>
           </View>
 
@@ -88,10 +92,10 @@ export default function SignupScreen() {
             {error && <ErrorMessage message={error.message} />}
 
             <AppInput
-              label="Full Name"
+              label={t('auth.fullName')}
               value={name}
               onChangeText={setName}
-              placeholder="Enter your full name"
+              placeholder={t('form.fullNamePlaceholder')}
               autoCapitalize="words"
               autoComplete="name"
               error={fieldErrors.name}
@@ -101,7 +105,7 @@ export default function SignupScreen() {
             />
 
             <AppInput
-              label="Email"
+              label={t('auth.email')}
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
@@ -115,7 +119,7 @@ export default function SignupScreen() {
             />
 
             <PasswordInput
-              label="Password"
+              label={t('auth.password')}
               value={password}
               onChangeText={setPassword}
               placeholder="Create a password"
@@ -123,7 +127,7 @@ export default function SignupScreen() {
             />
 
             <PasswordInput
-              label="Confirm Password"
+              label={t('auth.confirmPassword')}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="Confirm your password"
@@ -131,7 +135,7 @@ export default function SignupScreen() {
             />
 
             <AppButton
-              title="Create Account"
+              title={t('auth.createAccount')}
               onPress={handleSignup}
               variant="primary"
               size="large"
@@ -146,7 +150,7 @@ export default function SignupScreen() {
               style={styles.footerLink}
               onPress={() => router.push('/(auth)/login')}
             >
-              Sign In
+              {t('auth.signIn')}
             </Text>
           </View>
         </ScrollView>
@@ -155,13 +159,13 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.base,
     justifyContent: 'center',
   },
   header: {

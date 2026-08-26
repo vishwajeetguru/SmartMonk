@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -28,6 +27,8 @@ import { useProfile } from '../../hooks/useProfile';
 import { validation } from '../../utils/validation';
 import { generateId } from '../../utils/generateId';
 import { BusinessType, VehicleCount, Vehicle, COUNTRY_CODES } from '../../types/profile';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 type Country = (typeof COUNTRY_CODES)[number];
 
@@ -35,6 +36,9 @@ const TOTAL_STEPS = 4;
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
   const { user } = useAuth();
   const { saveProfile, isLoading, error, clearError } = useProfile();
 
@@ -230,7 +234,7 @@ export default function ProfileSetupScreen() {
         <View style={[styles.progressBarFill, { width: `${(currentStep / TOTAL_STEPS) * 100}%` }]} />
       </View>
       <Text style={styles.progressText}>
-        Step {currentStep} of {TOTAL_STEPS}
+        {t('onboarding.stepOf')} {currentStep} {t('onboarding.of')} {TOTAL_STEPS}
       </Text>
       <View style={styles.dotsRow}>
         {[1, 2, 3, 4].map((s) => (
@@ -249,32 +253,32 @@ export default function ProfileSetupScreen() {
 
   const renderStep1 = () => (
     <View>
-      <Text style={styles.stepTitle}>Add your personal details</Text>
-      <Text style={styles.stepSubtitle}>Let's get to know you better</Text>
+      <Text style={styles.stepTitle}>{t('onboarding.profileTitle')}</Text>
+      <Text style={styles.stepSubtitle}>{t('onboarding.profileSubtitle')}</Text>
 
       <ProfileAvatar imageUri={profileImage} name={fullName} onImageSelected={setProfileImage} />
 
       <AppInput
-        label="Full Name *"
+        label={t('form.fullNameRequired')}
         value={fullName}
-        onChangeText={(t) => {
-          setFullName(t);
+        onChangeText={(v) => {
+          setFullName(v);
           if (fieldErrors.fullName) setFieldErrors((p) => ({ ...p, fullName: '' }));
         }}
-        placeholder="Enter your full name"
+        placeholder={t('form.fullNamePlaceholder')}
         autoCapitalize="words"
         error={fieldErrors.fullName}
         leftIcon={<Ionicons name="person-outline" size={20} color={colors.textSecondary} />}
       />
 
       <DatePicker
-        label="Date of Birth *"
+        label={t('form.dobRequired')}
         value={dob}
         onChange={(v) => {
           setDob(v);
           if (fieldErrors.dob) setFieldErrors((p) => ({ ...p, dob: '' }));
         }}
-        placeholder="Select your date of birth"
+        placeholder={t('form.dobPlaceholder')}
         error={fieldErrors.dob}
       />
       <Text style={styles.helperText}>We use this to personalize your experience</Text>
@@ -283,10 +287,10 @@ export default function ProfileSetupScreen() {
 
   const renderStep2 = () => (
     <View>
-      <Text style={styles.stepTitle}>What's your mobile number?</Text>
-      <Text style={styles.stepSubtitle}>We'll use this to keep you updated</Text>
+      <Text style={styles.stepTitle}>{t('onboarding.whatsMobile')}</Text>
+      <Text style={styles.stepSubtitle}>{t('onboarding.mobileSubtitle')}</Text>
 
-      <Text style={styles.label}>Mobile Number *</Text>
+      <Text style={styles.label}>{t('form.mobileRequired')}</Text>
       <View style={styles.mobileRow}>
         <TouchableOpacity
           style={styles.countryButton}
@@ -301,11 +305,11 @@ export default function ProfileSetupScreen() {
         <View style={styles.mobileInputWrapper}>
           <AppInput
             value={mobile}
-            onChangeText={(t) => {
-              setMobile(t);
+            onChangeText={(v) => {
+              setMobile(v);
               if (fieldErrors.mobile) setFieldErrors((p) => ({ ...p, mobile: '' }));
             }}
-            placeholder="Enter mobile number"
+            placeholder={t('form.mobilePlaceholder')}
             keyboardType="phone-pad"
             error={fieldErrors.mobile}
             containerStyle={{ marginBottom: 0, flex: 1 }}
@@ -351,9 +355,9 @@ export default function ProfileSetupScreen() {
 
   const renderStep3 = () => (
     <View>
-      <Text style={styles.stepTitle}>What describes you best?</Text>
-      <Text style={styles.stepSubtitle}>Choose your business type</Text>
-      <BusinessTypeSelector selected={businessType} onSelect={(t) => { setBusinessType(t); setFieldErrors({}); }} error={fieldErrors.businessType} />
+      <Text style={styles.stepTitle}>{t('onboarding.businessTitle')}</Text>
+      <Text style={styles.stepSubtitle}>{t('onboarding.businessSubtitle')}</Text>
+      <BusinessTypeSelector selected={businessType} onSelect={(v) => { setBusinessType(v); setFieldErrors({}); }} error={fieldErrors.businessType} />
     </View>
   );
 
@@ -382,8 +386,8 @@ export default function ProfileSetupScreen() {
 
   const renderStep4 = () => (
     <View>
-      <Text style={styles.stepTitle}>How many vehicles do you run?</Text>
-      <Text style={styles.stepSubtitle}>We'll set up your fleet</Text>
+      <Text style={styles.stepTitle}>{t('onboarding.fleetTitle')}</Text>
+      <Text style={styles.stepSubtitle}>{t('onboarding.fleetSubtitle')}</Text>
 
       <VehicleCountSelector selected={vehicleCount} onSelect={handleVehicleCountSelect} error={fieldErrors.vehicleCount} />
 
@@ -392,8 +396,8 @@ export default function ProfileSetupScreen() {
           <AppInput
             label="Enter exact number of vehicles"
             value={customCountText}
-            onChangeText={(t) => {
-              const cleaned = t.replace(/[^0-9]/g, '');
+            onChangeText={(v) => {
+              const cleaned = v.replace(/[^0-9]/g, '');
               setCustomCountText(cleaned);
               if (fieldErrors.vehicleCount) setFieldErrors({});
               if (cleaned) {
@@ -423,7 +427,7 @@ export default function ProfileSetupScreen() {
               key={v.id}
               label={`Vehicle ${idx + 1} *`}
               value={v.number}
-              onChangeText={(t) => updateVehicleNumber(idx, t)}
+              onChangeText={(vText) => updateVehicleNumber(idx, vText)}
               placeholder={`e.g. MH12 AB 1234 or My Truck ${idx + 1}`}
               autoCapitalize="characters"
               error={fieldErrors[`vehicle_${idx}`]}
@@ -436,7 +440,7 @@ export default function ProfileSetupScreen() {
   );
 
   return (
-    <ScreenContainer safeArea style={styles.container}>
+    <ScreenContainer safeArea padded={false} style={styles.container}>
       <KeyboardAvoidingContainer>
         <View style={styles.topBar}>
           {currentStep > 1 ? (
@@ -470,7 +474,7 @@ export default function ProfileSetupScreen() {
 
         <View style={styles.bottomBar}>
           <AppButton
-            title={currentStep === TOTAL_STEPS ? 'Complete Setup' : 'Next'}
+            title={currentStep === TOTAL_STEPS ? t('onboarding.completeSetup') : t('onboarding.next')}
             onPress={handleNext}
             variant="primary"
             size="large"
@@ -478,7 +482,7 @@ export default function ProfileSetupScreen() {
             disabled={isLoading}
           />
           {currentStep < TOTAL_STEPS && (
-            <Text style={styles.bottomHint}>Step {currentStep} of {TOTAL_STEPS} • {['Personal', 'Mobile', 'Business', 'Fleet'][currentStep - 1]}</Text>
+            <Text style={styles.bottomHint}>{t('onboarding.stepOf')} {currentStep} {t('onboarding.of')} {TOTAL_STEPS} • {t(`onboarding.${['Personal', 'Mobile', 'Business', 'Fleet'][currentStep - 1].toLowerCase()}`)}</Text>
           )}
         </View>
       </KeyboardAvoidingContainer>
@@ -486,7 +490,7 @@ export default function ProfileSetupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: { backgroundColor: colors.background },
   topBar: {
     flexDirection: 'row',
@@ -498,7 +502,7 @@ const styles = StyleSheet.create({
   },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   topStepText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  progressContainer: { paddingHorizontal: spacing.xl, marginBottom: spacing.base },
+  progressContainer: { paddingHorizontal: spacing.base, marginBottom: spacing.base },
   progressBarBg: { height: 6, backgroundColor: colors.borderLight, borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: 6, backgroundColor: colors.primary, borderRadius: 3 },
   progressText: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center' },
@@ -506,7 +510,7 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
   dotActive: { backgroundColor: colors.primary, width: 24 },
   dotCompleted: { backgroundColor: colors.success },
-  scrollContent: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg },
+  scrollContent: { flexGrow: 1, paddingHorizontal: spacing.base, paddingVertical: spacing.base },
   form: { flex: 1 },
   stepTitle: { ...typography.headingMedium, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
   stepSubtitle: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl },
@@ -522,7 +526,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     minHeight: 52,
     gap: 6,
   },
@@ -531,7 +535,7 @@ const styles = StyleSheet.create({
   mobileInputWrapper: { flex: 1 },
   modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '60%',
@@ -569,7 +573,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     alignItems: 'center',
   },
   exactChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
@@ -578,7 +582,7 @@ const styles = StyleSheet.create({
   vehiclesContainer: { marginTop: spacing.base, paddingTop: spacing.base, borderTopWidth: 1, borderTopColor: colors.borderLight },
   vehiclesTitle: { ...typography.label, color: colors.textPrimary, marginBottom: 2 },
   vehiclesSubtitle: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.base },
-  bottomBar: { paddingHorizontal: spacing.xl, paddingVertical: spacing.base, borderTopWidth: 1, borderTopColor: colors.borderLight, backgroundColor: colors.white },
+  bottomBar: { paddingHorizontal: spacing.base, paddingVertical: spacing.base, borderTopWidth: 1, borderTopColor: colors.borderLight, backgroundColor: colors.surface },
   bottomHint: { ...typography.caption, color: colors.textTertiary, textAlign: 'center', marginTop: spacing.xs },
   dobButton: {
     flexDirection: 'row',
@@ -589,7 +593,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     minHeight: 52,
     marginBottom: spacing.xs,
   },
@@ -598,7 +602,7 @@ const styles = StyleSheet.create({
   dobButtonText: { ...typography.body, color: colors.textPrimary },
   dobPlaceholder: { color: colors.textTertiary },
   dobModalContent: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '70%',

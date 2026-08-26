@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { radius } from '../../constants/radius';
 import { spacing } from '../../constants/spacing';
 import { shadows } from '../../constants/shadows';
@@ -18,6 +18,8 @@ export function AppCard({
   variant = 'default',
   padding = 'base',
 }: AppCardProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const cardStyles = [
     styles.base,
     styles[variant],
@@ -29,20 +31,20 @@ export function AppCard({
   return <View style={cardStyles}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   base: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
   },
   default: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   elevated: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     ...shadows.medium,
   },
   outlined: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },

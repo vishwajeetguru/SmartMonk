@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -13,9 +12,14 @@ import { PasswordInput } from '../../components/ui/PasswordInput';
 import { ErrorMessage } from '../../components/ui/ErrorMessage';
 import { useAuth } from '../../hooks/useAuth';
 import { validation } from '../../utils/validation';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
   const { login, isLoading, error, clearError } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -56,7 +60,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScreenContainer safeArea style={styles.container}>
+    <ScreenContainer safeArea padded={false} style={styles.container}>
       <KeyboardAvoidingContainer>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -69,9 +73,9 @@ export default function LoginScreen() {
                 <Text style={styles.logoText}>SM</Text>
               </View>
             </View>
-            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.title}>{t('auth.loginTitle')}</Text>
             <Text style={styles.subtitle}>
-              Sign in to your SmartMonk account
+              {t('auth.loginSubtitle')}
             </Text>
           </View>
 
@@ -79,7 +83,7 @@ export default function LoginScreen() {
             {error && <ErrorMessage message={error.message} />}
 
             <AppInput
-              label="Email"
+              label={t('auth.email')}
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
@@ -93,7 +97,7 @@ export default function LoginScreen() {
             />
 
             <PasswordInput
-              label="Password"
+              label={t('auth.password')}
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your password"
@@ -101,7 +105,7 @@ export default function LoginScreen() {
             />
 
             <AppButton
-              title="Sign In"
+              title={t('auth.signIn')}
               onPress={handleLogin}
               variant="primary"
               size="large"
@@ -125,13 +129,13 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.base,
     justifyContent: 'center',
   },
   header: {

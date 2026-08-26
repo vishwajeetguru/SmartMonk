@@ -2,6 +2,8 @@ export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
 
 export const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
+export type DriverStatus = 'Active' | 'On Trip' | 'Inactive';
+
 export interface Driver {
   id: string;
   userId: string;
@@ -13,7 +15,10 @@ export interface Driver {
   address?: string;
   salary?: string;
   assignedVehicle?: string;
+  photoUrl?: string | null;
   createdAt: string;
+  updatedAt?: string;
+  status?: DriverStatus;
 }
 
 export interface DriverFormData {
@@ -25,4 +30,6 @@ export interface DriverFormData {
   address?: string;
   salary?: string;
   assignedVehicle?: string;
+  photoUrl?: string | null;
+  status?: DriverStatus;
 }

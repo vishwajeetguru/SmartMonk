@@ -9,16 +9,20 @@ import Animated, {
   withSpring,
   Easing,
 } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { AppButton } from '../../components/ui/AppButton';
 import { TruckIllustration } from '../../components/illustrations/TruckIllustration';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
   const translateY = useSharedValue(0);
   const [showMonk, setShowMonk] = useState(() => Math.random() > 0.5);
   const monkOpacity = useSharedValue(showMonk ? 1 : 0);
@@ -63,7 +67,7 @@ export default function WelcomeScreen() {
   const carStyle = useAnimatedStyle(() => ({ opacity: carOpacity.value }));
 
   return (
-    <ScreenContainer safeArea style={styles.container}>
+    <ScreenContainer safeArea padded={false} style={styles.container}>
       <View style={styles.content}>
         <Animated.View style={[styles.illustrationContainer, animatedStyle]}>
           <View style={styles.illustrationStack}>
@@ -88,26 +92,23 @@ export default function WelcomeScreen() {
         </Animated.View>
 
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Welcome to{'\n'}SmartMonk</Text>
-          <Text style={styles.subtitle}>
-            Your complete transport business management solution. Track vehicles,
-            manage drivers, and grow your business — all in one place.
-          </Text>
+          <Text style={styles.title}>{t('auth.welcomeTitle')}</Text>
+          <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
 
           <View style={styles.offlineBadge}>
-            <Text style={styles.offlineText}>Works Offline</Text>
+            <Text style={styles.offlineText}>{t('auth.worksOffline')}</Text>
           </View>
         </View>
 
         <View style={styles.buttonContainer}>
           <AppButton
-            title="Get Started"
+            title={t('auth.getStarted')}
             onPress={() => router.push('/(auth)/signup')}
             variant="primary"
             size="large"
           />
           <AppButton
-            title="I Already Have an Account"
+            title={t('auth.alreadyHaveAccount')}
             onPress={() => router.push('/(auth)/login')}
             variant="ghost"
             size="medium"
@@ -119,7 +120,7 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     backgroundColor: colors.background,
   },
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.base,
   },
   illustrationContainer: {
     marginBottom: spacing.xl,

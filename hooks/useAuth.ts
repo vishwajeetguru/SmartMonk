@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { User, LoginCredentials, SignupCredentials, AuthError } from '../types/auth';
 import { validation } from '../utils/validation';
 import { authApi } from '../services/api/auth';
@@ -15,6 +15,7 @@ interface UseAuthReturn {
   signup: (credentials: SignupCredentials) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 function mapApiUser(apiUser: any): User {
@@ -27,40 +28,62 @@ function mapApiUser(apiUser: any): User {
   };
 }
 
-export function useAuth(): UseAuthReturn {
+const AuthContext = createContext<UseAuthReturn | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [error, setError] = useState<AuthError | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    checkAuthState();
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const checkAuthState = async () => {
+  const refreshProfile = useCallback(async () => {
     try {
-      setIsLoading(true);
+      const profile = await profileApi.get();
+      if (mountedRef.current) setIsProfileComplete(!!profile?.completed);
+    } catch {
+      if (mountedRef.current) setIsProfileComplete(false);
+    }
+  }, []);
+
+  const checkAuthState = useCallback(async () => {
+    try {
+      if (mountedRef.current) setIsLoading(true);
       const token = await tokenStorage.getAccessToken();
       const apiUser = await tokenStorage.getUser();
+      if (!mountedRef.current) return;
       if (token && apiUser) {
         setUser(mapApiUser(apiUser));
         setIsAuthenticated(true);
         try {
           const profile = await profileApi.get();
-          setIsProfileComplete(!!profile?.completed);
+          if (mountedRef.current) setIsProfileComplete(!!profile?.completed);
         } catch {
-          setIsProfileComplete(false);
+          if (mountedRef.current) setIsProfileComplete(false);
         }
       } else {
         setIsAuthenticated(false);
+        setUser(null);
+        setIsProfileComplete(false);
       }
     } catch (err) {
-      console.error('Error checking auth state:', err);
+      if (__DEV__) console.error('Error checking auth state:', err);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
-  };
+  }, [refreshProfile]);
+
+  useEffect(() => {
+    checkAuthState();
+  }, [checkAuthState]);
 
   const login = useCallback(async (credentials: LoginCredentials): Promise<boolean> => {
     try {
@@ -146,15 +169,27 @@ export function useAuth(): UseAuthReturn {
     setError(null);
   }, []);
 
-  return {
-    user,
-    isLoading,
-    isAuthenticated,
-    isProfileComplete,
-    error,
-    login,
-    signup,
-    logout,
-    clearError,
-  };
+  const value = useMemo<UseAuthReturn>(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated,
+      isProfileComplete,
+      error,
+      login,
+      signup,
+      logout,
+      clearError,
+      refreshProfile,
+    }),
+    [user, isLoading, isAuthenticated, isProfileComplete, error, login, signup, logout, clearError, refreshProfile]
+  );
+
+  return React.createElement(AuthContext.Provider, { value }, children);
+}
+
+export function useAuth(): UseAuthReturn {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

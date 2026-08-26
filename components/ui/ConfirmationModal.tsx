@@ -6,7 +6,8 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -30,10 +31,16 @@ export function ConfirmationModal({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   icon = 'alert-circle',
-  iconColor = colors.warning,
+  iconColor,
   onConfirm,
   onCancel,
 }: ConfirmationModalProps) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
+  const resolvedIconColor = iconColor ?? colors.warning;
+  const confirmLabel = confirmText === 'Confirm' ? t('common.confirm') : confirmText;
+  const cancelLabel = cancelText === 'Cancel' ? t('common.cancel') : cancelText;
   const scale = useSharedValue(0.9);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -55,8 +62,8 @@ export function ConfirmationModal({
     >
       <View style={styles.overlay}>
         <Animated.View style={[styles.container, animatedStyle]}>
-          <View style={[styles.iconContainer, { backgroundColor: `${iconColor}15` }]}>
-            <Ionicons name={icon} size={40} color={iconColor} />
+          <View style={[styles.iconContainer, { backgroundColor: `${resolvedIconColor}15` }]}>
+            <Ionicons name={icon} size={40} color={resolvedIconColor} />
           </View>
 
           <Text style={styles.title}>{title}</Text>
@@ -68,7 +75,7 @@ export function ConfirmationModal({
               onPress={onCancel}
               activeOpacity={0.7}
             >
-              <Text style={styles.cancelText}>{cancelText}</Text>
+              <Text style={styles.cancelText}>{cancelLabel}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -76,7 +83,7 @@ export function ConfirmationModal({
               onPress={onConfirm}
               activeOpacity={0.7}
             >
-              <Text style={styles.confirmText}>{confirmText}</Text>
+              <Text style={styles.confirmText}>{confirmLabel}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -85,7 +92,7 @@ export function ConfirmationModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: colors.overlay,
@@ -96,7 +103,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.xl,
     padding: spacing.xxl,
     paddingVertical: spacing.xxl,

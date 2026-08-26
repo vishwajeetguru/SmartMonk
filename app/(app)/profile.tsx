@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -23,6 +24,9 @@ import { BusinessType, VehicleCount, Vehicle } from '../../types/profile';
 import { generateId } from '../../utils/generateId';
 
 export default function ProfileTabScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, logout } = useAuth();
   const { profile, isLoading, error, saveProfile, loadProfile, clearError } = useProfile();
@@ -183,25 +187,25 @@ export default function ProfileTabScreen() {
   };
 
   return (
-    <ScreenContainer safeArea style={styles.container}>
+    <ScreenContainer safeArea padded={false} style={styles.container}>
       <KeyboardAvoidingContainer>
         <View style={styles.header}>
           <Ionicons name="person-circle" size={28} color={colors.primary} />
-          <Text style={styles.headerTitle}>My Profile</Text>
+          <Text style={styles.headerTitle}>{t('screen.profile')}</Text>
           <View style={{ width: 28 }} />
         </View>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.form}>
             {error && <ErrorMessage message={error} />}
             <ProfileAvatar imageUri={profileImage} name={fullName} onImageSelected={setProfileImage} />
-            <AppInput label="Full Name *" value={fullName} onChangeText={setFullName} placeholder="Full name" autoCapitalize="words" error={fieldErrors.fullName} leftIcon={<Ionicons name="person-outline" size={20} color={colors.textSecondary} />} />
-            <AppInput label="Business Name" value={businessName} onChangeText={setBusinessName} placeholder="Business name" leftIcon={<Ionicons name="business-outline" size={20} color={colors.textSecondary} />} />
-            <AppInput label="Mobile *" value={mobile} onChangeText={setMobile} placeholder="Mobile" keyboardType="phone-pad" error={fieldErrors.mobile} leftIcon={<Ionicons name="call-outline" size={20} color={colors.textSecondary} />} />
+            <AppInput label={t('form.fullNameRequired')} value={fullName} onChangeText={setFullName} placeholder={t('form.fullNamePlaceholder')} autoCapitalize="words" error={fieldErrors.fullName} leftIcon={<Ionicons name="person-outline" size={20} color={colors.textSecondary} />} />
+            <AppInput label={t('form.businessName')} value={businessName} onChangeText={setBusinessName} placeholder={t('form.businessNamePlaceholder')} leftIcon={<Ionicons name="business-outline" size={20} color={colors.textSecondary} />} />
+            <AppInput label={t('form.mobileRequired')} value={mobile} onChangeText={setMobile} placeholder={t('form.mobilePlaceholder')} keyboardType="phone-pad" error={fieldErrors.mobile} leftIcon={<Ionicons name="call-outline" size={20} color={colors.textSecondary} />} />
             <BusinessTypeSelector selected={businessType} onSelect={setBusinessType} />
             <VehicleCountSelector selected={vehicleCount} onSelect={handleVehicleCountSelect} error={fieldErrors.vehicleCount} />
             {vehicleCount === '10+' && (
               <AppInput
-                label="Enter exact number of vehicles"
+                label={t('form.vehicleCount')}
                 value={customCountText}
                 onChangeText={(t) => {
                   const cleaned = t.replace(/[^0-9]/g, '');
@@ -215,7 +219,7 @@ export default function ProfileTabScreen() {
             )}
             {(vehicleCount === '2-5' || vehicleCount === '6-10') && (
               <View style={{ marginBottom: spacing.base, marginTop: spacing.sm }}>
-                <Text style={{ ...typography.label, color: colors.textPrimary, marginBottom: spacing.sm }}>Select exact number</Text>
+                <Text style={{ ...typography.label, color: colors.textPrimary, marginBottom: spacing.sm }}>{t('common.select')}</Text>
                 <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
                   {(vehicleCount === '2-5' ? [2, 3, 4, 5] : [6, 7, 8, 9, 10]).map((n) => (
                     <TouchableOpacity key={n} style={[styles.vehicleChip, exactCount === n && styles.vehicleChipActive]} onPress={() => handleExactSelect(n)}>
@@ -228,8 +232,8 @@ export default function ProfileTabScreen() {
             )}
             {vehicles.length > 0 && (
               <View style={{ marginTop: spacing.base, paddingTop: spacing.base, borderTopWidth: 1, borderTopColor: colors.borderLight }}>
-                <Text style={{ ...typography.label, color: colors.textPrimary, marginBottom: 2 }}>Vehicle details ({vehicles.length})</Text>
-                <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: spacing.base }}>Saved numbers shown — edit as needed</Text>
+                <Text style={{ ...typography.label, color: colors.textPrimary, marginBottom: 2 }}>{t('profile.vehiclesTitle')} ({vehicles.length})</Text>
+                <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: spacing.base }}>{t('profile.vehiclesSubtitle')}</Text>
                 {vehicles.map((v, idx) => (
                   <AppInput
                     key={v.id}
@@ -244,37 +248,37 @@ export default function ProfileTabScreen() {
                 ))}
               </View>
             )}
-            <AppInput label="Location" value={location} onChangeText={setLocation} placeholder="Location" leftIcon={<Ionicons name="location-outline" size={20} color={colors.textSecondary} />} />
-            <AppInput label="GST Number" value={gstNumber} onChangeText={setGstNumber} placeholder="GST" leftIcon={<Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />} />
+            <AppInput label={t('form.location')} value={location} onChangeText={setLocation} placeholder={t('form.locationPlaceholder')} leftIcon={<Ionicons name="location-outline" size={20} color={colors.textSecondary} />} />
+            <AppInput label={t('form.gstNumber')} value={gstNumber} onChangeText={setGstNumber} placeholder={t('form.gstPlaceholder')} leftIcon={<Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />} />
             <View style={styles.saveButtonWrap}>
-              <AppButton title="Save Changes" onPress={handleSave} variant="primary" size="large" loading={isLoading} disabled={isLoading} />
+              <AppButton title={t('profile.save')} onPress={handleSave} variant="primary" size="large" loading={isLoading} disabled={isLoading} />
             </View>
 
             <View style={styles.accountSection}>
-              <Text style={styles.accountTitle}>Account</Text>
+              <Text style={styles.accountTitle}>{t('profile.accountTitle')}</Text>
               <TouchableOpacity style={styles.logoutCard} onPress={() => setShowLogoutModal(true)} activeOpacity={0.7}>
                 <View style={styles.logoutIcon}>
                   <Ionicons name="log-out-outline" size={20} color={colors.error} />
                 </View>
                 <View style={styles.logoutTextWrap}>
-                  <Text style={styles.logoutTitle}>Sign Out</Text>
-                  <Text style={styles.logoutSubtitle}>You’ll need to sign in again</Text>
+                  <Text style={styles.logoutTitle}>{t('profile.signOutTitle')}</Text>
+                  <Text style={styles.logoutSubtitle}>{t('profile.signOutSubtitle')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
               </TouchableOpacity>
-              <Text style={styles.accountHint}>Signed in as {user?.email}</Text>
+              <Text style={styles.accountHint}>{t('settings.signedInAs')} {user?.email}</Text>
             </View>
             <View style={{ height: 20 }} />
           </View>
         </ScrollView>
       </KeyboardAvoidingContainer>
-      <SuccessModal visible={showSuccess} title="Profile Updated!" message="Your profile has been saved." onClose={() => setShowSuccess(false)} />
+      <SuccessModal visible={showSuccess} title={t('profile.updated')} message={t('profile.updatedMsg')} onClose={() => setShowSuccess(false)} />
       <ConfirmationModal
         visible={showLogoutModal}
-        title="Sign Out"
-        message="Are you sure you want to sign out? You’ll need to log in again to access your account."
-        confirmText="Sign Out"
-        cancelText="Cancel"
+        title={t('profile.signOutTitle')}
+        message={t('common.signOutMsg')}
+        confirmText={t('common.signOut')}
+        cancelText={t('common.cancel')}
         icon="log-out-outline"
         iconColor={colors.error}
         onConfirm={handleLogout}
@@ -283,11 +287,11 @@ export default function ProfileTabScreen() {
     </ScreenContainer>
   );
 }
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: { backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   headerTitle: { ...typography.headingSmall, color: colors.textPrimary },
-  scrollContent: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: 140 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: spacing.base, paddingTop: spacing.base, paddingBottom: 140 },
   form: { flex: 1 },
   saveButtonWrap: { marginTop: spacing.base, marginBottom: spacing.lg },
   accountSection: { marginTop: spacing.xl, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.borderLight },
@@ -295,7 +299,7 @@ const styles = StyleSheet.create({
   logoutCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.base,
     borderWidth: 1,
@@ -314,7 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     alignItems: 'center',
   },
   vehicleChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },

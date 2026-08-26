@@ -8,7 +8,15 @@ interface ListResponse {
   limit: number;
 }
 
+function mapPaymentToStatus(payment: string | undefined): import('../../types/trip').TripStatus {
+  if (payment === 'Paid') return 'Completed';
+  if (payment === 'Partial') return 'Active';
+  return 'Pending';
+}
+
 function serializeTrip(t: any): Trip {
+  const rawStatus = t.status as import('../../types/trip').TripStatus | undefined;
+  const derivedStatus = rawStatus || mapPaymentToStatus(t.paymentStatus);
   return {
     id: t.id,
     userId: t.userId,
@@ -26,6 +34,7 @@ function serializeTrip(t: any): Trip {
     profit: t.profit != null ? String(t.profit) : '0',
     totalExpense: t.totalExpense != null ? String(t.totalExpense) : '0',
     paymentStatus: t.paymentStatus || 'Pending',
+    status: derivedStatus,
     createdAt: t.createdAt,
     // legacy
     title: t.material || t.clientName || 'Trip',
@@ -55,6 +64,7 @@ export const tripApi = {
       profit: data.profit ? Number(data.profit) : 0,
       totalExpense: data.totalExpense ? Number(data.totalExpense) : 0,
       paymentStatus: data.paymentStatus || 'Pending',
+      status: (data as any).status || data.paymentStatus || 'Pending',
     };
     const res = await apiJson<any>('/trips', { method: 'POST', body: JSON.stringify(payload) });
     return serializeTrip(res);
@@ -74,6 +84,16 @@ export const tripApi = {
     if (data.profit !== undefined) payload.profit = Number(data.profit);
     if (data.totalExpense !== undefined) payload.totalExpense = Number(data.totalExpense);
     if (data.paymentStatus !== undefined) payload.paymentStatus = data.paymentStatus;
+    if ((data as any).status !== undefined) {
+      payload.status = (data as any).status;
+      // keep paymentStatus in sync for legacy
+      if (!data.paymentStatus) {
+        const s = (data as any).status;
+        if (s === 'Completed') payload.paymentStatus = 'Paid';
+        else if (s === 'Active') payload.paymentStatus = 'Partial';
+        else payload.paymentStatus = 'Pending';
+      }
+    }
     const res = await apiJson<any>(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
     return serializeTrip(res);
   },

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -29,6 +30,16 @@ export function DatePicker({
   displayFormat = 'DD_MMM_YYYY',
   inline = false,
 }: DatePickerProps) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
+  const placeholderLabel =
+    placeholder === 'Select date'
+      ? `${t('common.select')} date`
+      : placeholder === 'Select your date of birth'
+        ? t('form.dobPlaceholder')
+        : placeholder;
+  const headerTitle = label ? `${t('common.select')} ${label.replace(' *', '')}` : `${t('common.select')} Date`;
   const now = new Date();
   const defaultMin = minYear ?? now.getFullYear() - 100;
   const defaultMax = maxYear ?? now.getFullYear() - 10;
@@ -109,7 +120,7 @@ export function DatePicker({
       >
         <View style={styles.buttonLeft}>
           <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
-          <Text style={[styles.buttonText, !value && styles.placeholder]}>{value ? formatDisplay(value) : placeholder}</Text>
+          <Text style={[styles.buttonText, !value && styles.placeholder]}>{value ? formatDisplay(value) : placeholderLabel}</Text>
         </View>
         <Ionicons name={showModal ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
       </TouchableOpacity>
@@ -152,10 +163,10 @@ export function DatePicker({
             </View>
             <View style={styles.footer}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirmButton} onPress={confirm}>
-                <Text style={styles.confirmText}>Confirm</Text>
+                <Text style={styles.confirmText}>{t('common.confirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -165,7 +176,7 @@ export function DatePicker({
           <View style={styles.overlay}>
             <View style={styles.modalContent}>
               <View style={styles.header}>
-                <Text style={styles.title}>Select Date</Text>
+                <Text style={styles.title}>{headerTitle}</Text>
                 <TouchableOpacity onPress={() => setShowModal(false)}>
                   <Ionicons name="close" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
@@ -206,10 +217,10 @@ export function DatePicker({
 
               <View style={styles.footer}>
                 <TouchableOpacity style={styles.cancelButton} onPress={() => setShowModal(false)}>
-                  <Text style={styles.cancelText}>Cancel</Text>
+                  <Text style={styles.cancelText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.confirmButton} onPress={confirm}>
-                  <Text style={styles.confirmText}>Confirm</Text>
+                  <Text style={styles.confirmText}>{t('common.confirm')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -220,7 +231,7 @@ export function DatePicker({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   label: { ...typography.label, color: colors.textPrimary, marginBottom: spacing.xs },
   button: {
     flexDirection: 'row',
@@ -231,7 +242,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     minHeight: 52,
   },
   buttonError: { borderColor: colors.error },
@@ -241,7 +252,7 @@ const styles = StyleSheet.create({
   errorText: { ...typography.caption, color: colors.error, marginTop: spacing.xs },
   inlineContainer: {
     marginTop: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: radius.md,
@@ -249,7 +260,7 @@ const styles = StyleSheet.create({
   },
   overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '70%',

@@ -7,13 +7,15 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface RoadAnimationProps {
   width?: number;
 }
 
 export function RoadAnimation({ width = 300 }: RoadAnimationProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const translateX = useSharedValue(0);
 
   React.useEffect(() => {
@@ -43,7 +45,7 @@ export function RoadAnimation({ width = 300 }: RoadAnimationProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     height: 30,
     justifyContent: 'center',

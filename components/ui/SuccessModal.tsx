@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withDelay, withTiming } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -15,6 +16,9 @@ interface SuccessModalProps {
 }
 
 export function SuccessModal({ visible, title, message, onClose }: SuccessModalProps) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
   const scale = useSharedValue(0.5);
   const opacity = useSharedValue(0);
 
@@ -43,7 +47,7 @@ export function SuccessModal({ visible, title, message, onClose }: SuccessModalP
           <Text style={styles.title}>{title}</Text>
           {message ? <Text style={styles.message}>{message}</Text> : null}
           <TouchableOpacity style={styles.button} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.buttonText}>Done</Text>
+            <Text style={styles.buttonText}>{t('common.done')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -51,9 +55,9 @@ export function SuccessModal({ visible, title, message, onClose }: SuccessModalP
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   overlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-  card: { width: '100%', maxWidth: 340, backgroundColor: colors.white, borderRadius: radius.xl, padding: spacing.xl, alignItems: 'center' },
+  card: { width: '100%', maxWidth: 340, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, alignItems: 'center' },
   iconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.base },
   title: { ...typography.headingSmall, color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xs },
   message: { ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.lg },

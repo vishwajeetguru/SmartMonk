@@ -2,6 +2,10 @@ export type PaymentStatus = 'Pending' | 'Paid' | 'Partial';
 
 export const PAYMENT_STATUSES: PaymentStatus[] = ['Pending', 'Paid', 'Partial'];
 
+export type TripStatus = 'Pending' | 'Active' | 'Completed' | 'Cancelled';
+
+export const TRIP_STATUSES: TripStatus[] = ['Pending', 'Active', 'Completed', 'Cancelled'];
+
 export interface Trip {
   id: string;
   userId: string;
@@ -26,6 +30,7 @@ export interface Trip {
   profit: string;
   totalExpense: string;
   paymentStatus: PaymentStatus;
+  status?: TripStatus;
   vehicleNumber: string;
   createdAt: string;
 }
@@ -44,6 +49,7 @@ export interface TripFormData {
   profit: string;
   totalExpense: string;
   paymentStatus: PaymentStatus;
+  status?: TripStatus;
   // legacy compat
   title?: string;
   from?: string;

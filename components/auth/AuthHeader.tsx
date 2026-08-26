@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 
@@ -12,6 +12,8 @@ interface AuthHeaderProps {
 }
 
 export function AuthHeader({ title, subtitle, icon }: AuthHeaderProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.container}>
       {icon && (
@@ -25,7 +27,7 @@ export function AuthHeader({ title, subtitle, icon }: AuthHeaderProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     alignItems: 'center',
     marginBottom: spacing.xl,

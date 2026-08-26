@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -26,9 +27,12 @@ export function BusinessTypeSelector({
   onSelect,
   error,
 }: BusinessTypeSelectorProps) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Business Type *</Text>
+      <Text style={styles.label}>{t('form.businessTypeRequired')}</Text>
       <View style={styles.optionsContainer}>
         {BUSINESS_TYPES.map((type) => (
           <TouchableOpacity
@@ -68,7 +72,7 @@ export function BusinessTypeSelector({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     marginBottom: spacing.base,
   },
@@ -90,7 +94,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     minWidth: '45%',
   },
   optionSelected: {

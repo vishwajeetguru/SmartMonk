@@ -2,7 +2,8 @@ import React, { useCallback } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -12,6 +13,9 @@ import { useProfile } from '../../hooks/useProfile';
 import { formatters } from '../../utils/formatters';
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const { profile, loadProfile } = useProfile();
@@ -29,10 +33,18 @@ export default function HomeScreen() {
   };
 
   const displayName = profile?.fullName || user?.name || 'User';
+  const firstName = displayName.split(' ')[0] || displayName;
   const initials = formatters.getInitials(displayName);
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) return 'Good morning';
+    if (h >= 12 && h < 17) return 'Good afternoon';
+    if (h >= 17 && h < 21) return 'Good evening';
+    return 'Good night';
+  })();
 
   return (
-    <ScreenContainer safeArea style={styles.container}>
+    <ScreenContainer safeArea padded={false} style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -40,8 +52,10 @@ export default function HomeScreen() {
       >
         <View style={styles.header}>
           <View style={styles.greetingContainer}>
-            <Text style={styles.greeting}>Welcome to SmartMonk</Text>
-            <Text style={styles.userName}>{displayName}</Text>
+            <Text style={styles.greeting}>
+              {greeting}, {firstName} 👋
+            </Text>
+            <Text style={styles.userName}>{t('home.subtitle')}</Text>
           </View>
           <TouchableOpacity
             style={styles.profileButton}
@@ -65,51 +79,24 @@ export default function HomeScreen() {
           <View style={styles.cardIcon}>
             <Ionicons name="car" size={40} color={colors.primary} />
           </View>
-          <Text style={styles.cardTitle}>Your Transport Workspace</Text>
+          <Text style={styles.cardTitle}>{t('home.workspaceTitle')}</Text>
           <Text style={styles.cardSubtitle}>
-            Your transport business management workspace is ready. We're building
-            powerful features to help you manage your fleet, track trips, and
-            grow your business.
+            {t('home.workspaceBody')}
           </Text>
-        </View>
-
-        <View style={styles.comingSoonContainer}>
-          <View style={styles.comingSoonHeader}>
-            <Ionicons name="construct" size={24} color={colors.warning} />
-            <Text style={styles.comingSoonTitle}>Coming Soon</Text>
-          </View>
-          <Text style={styles.comingSoonSubtitle}>
-            Transport management features are coming soon.
-          </Text>
-          <View style={styles.featureList}>
-            {[
-              'Vehicle Management',
-              'Driver Tracking',
-              'Trip Records',
-              'Fuel & Expenses',
-              'Payment Tracking',
-              'Monthly Reports',
-            ].map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <View style={styles.featureDot} />
-                <Text style={styles.featureText}>{feature}</Text>
-              </View>
-            ))}
-          </View>
         </View>
       </ScrollView>
     </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     backgroundColor: colors.background,
   },
   scrollView: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.base,
     paddingBottom: 110,
   },
   header: {
@@ -167,7 +154,7 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: spacing.xl,
     marginBottom: spacing.xl,

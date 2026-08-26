@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 
@@ -17,6 +17,8 @@ export function AuthForm({
   footerLinkText,
   onFooterLinkPress,
 }: AuthFormProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.container}>
       <View style={styles.form}>{children}</View>
@@ -32,7 +34,7 @@ export function AuthForm({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },

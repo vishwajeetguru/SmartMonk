@@ -1,23 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withDelay,
   withSpring,
-  Easing,
 } from 'react-native-reanimated';
-import { colors } from '../constants/colors';
 import { typography } from '../constants/typography';
 import { spacing } from '../constants/spacing';
-import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../theme/ThemeContext';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export default function SplashScreen() {
-  const router = useRouter();
-  const { isAuthenticated, isProfileComplete, isLoading } = useAuth();
-  const [isReady, setIsReady] = useState(false);
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = makeStyles(colors);
 
   const logoOpacity = useSharedValue(0);
   const logoScale = useSharedValue(0.8);
@@ -49,24 +47,7 @@ export default function SplashScreen() {
     textOpacity.value = withDelay(600, withTiming(1, { duration: 500 }));
     taglineOpacity.value = withDelay(900, withTiming(1, { duration: 500 }));
     progressOpacity.value = withDelay(1200, withTiming(1, { duration: 300 }));
-
-    const timer = setTimeout(async () => {
-      setIsReady(true);
-    }, 2000);
-
-    return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (!isReady || isLoading) return;
-    if (isAuthenticated && isProfileComplete) {
-      router.replace('/(app)/home');
-    } else if (isAuthenticated && !isProfileComplete) {
-      router.replace('/(onboarding)/profile-setup');
-    } else {
-      router.replace('/(auth)/welcome');
-    }
-  }, [isReady, isAuthenticated, isProfileComplete, isLoading]);
 
   return (
     <View style={styles.container}>
@@ -82,7 +63,7 @@ export default function SplashScreen() {
         </Animated.Text>
 
         <Animated.Text style={[styles.tagline, taglineAnimatedStyle]}>
-          Transport Made Simple
+          {t('splash.tagline')}
         </Animated.Text>
       </View>
 
@@ -95,7 +76,7 @@ export default function SplashScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

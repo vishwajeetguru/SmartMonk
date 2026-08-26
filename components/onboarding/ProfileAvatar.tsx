@@ -7,7 +7,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
@@ -28,6 +28,8 @@ export function ProfileAvatar({
   onImageSelected,
   size = 120,
 }: ProfileAvatarProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -105,7 +107,7 @@ export function ProfileAvatar({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     alignSelf: 'center',
     marginBottom: spacing.lg,

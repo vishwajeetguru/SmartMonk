@@ -6,7 +6,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeContext';
 import { radius } from '../../constants/radius';
 import { spacing } from '../../constants/spacing';
 
@@ -27,10 +27,13 @@ export function IconButton({
   onPress,
   size = 'medium',
   variant = 'ghost',
-  color = colors.primary,
+  color,
   style,
   disabled = false,
 }: IconButtonProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const resolvedColor = color ?? colors.primary;
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -58,7 +61,7 @@ export function IconButton({
           height: containerSize,
           borderRadius: containerSize / 2,
         },
-        variant === 'filled' && { backgroundColor: color },
+        variant === 'filled' && { backgroundColor: resolvedColor },
         animatedStyle,
         disabled && styles.disabled,
         style,
@@ -72,13 +75,13 @@ export function IconButton({
       <Ionicons
         name={icon}
         size={iconSize}
-        color={variant === 'filled' ? colors.white : color}
+        color={variant === 'filled' ? colors.white : resolvedColor}
       />
     </AnimatedTouchable>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: any) => StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
