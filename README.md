@@ -10,18 +10,26 @@ A comprehensive transport business management mobile application built with Expo
 - **4-Step Onboarding** — Avatar + Full name + **DOB** (reusable `DatePicker`), Country code + mobile, Business type, Fleet (vehicle count → dynamic `Vehicle 1..N` with live duplicate detection)
 
 ### Core Screens (Tabs)
-- **Home / Trips / Expense / Reminder / More** bottom navigation, with `Suppliers`, `Pumps`, `Drivers`, `Profile`, `Reports`, `Payments`, `Settings`, `Edit Profile` inside the More sheet
+- **Home / Trips / Expense / Reminder / More** bottom navigation, with `Suppliers`, `Pumps`, `Drivers`, `Profile`, `Reports`, `Payments`, `Settings`, `Edit Profile`, `Documents`, `Paywall` inside the More sheet
+- **Home (Premium)** — `PREMIUM WORKSPACE` pill + `Premium Membership` card (`Active until 27 Sep 2026`), crown badge on avatar, `Thank you for being Premium` dark banner, `Quick Links` with crown badges + `PREMIUM` pill (screenshot-parity); `TrialBanner` hidden when premium
 - **Trips** — truck/material/supplier/client/financials (Revenue/Expense/Profit) + status, grouped list (Today/Yesterday), header stats, search + filter
 - **Drivers** — photo, blood group (8-chip grid), aadhar, licence, salary, assigned vehicle, status (Active/On Trip/Inactive)
 - **Suppliers / Pumps (Fuel stations)** — CRUD with search + filter and stats
-- **Profile** — avatar, business type, fleet vehicles, GST, Sign Out
+- **Profile** — avatar with **premium crown badge** (`ProfileAvatar` + `useSubscription`), business type, fleet vehicles, GST, Sign Out
+
+### Expenses, Documents, Reports & Subscription
+- **Expenses** — Fuel/Repair/Toll/Bhatta/Other, receipt upload (`/uploads/expense-receipt`), fuel extras (odometer/liters), linked trip, per-vehicle km/l + cost/km
+- **Documents** — RC/Insurance/Permit/PUC/Fitness per vehicle, expiry alerts, auto-scheduled reminder 7d before expiry, search + filter
+- **Reports** — P&L (revenue/expenses/profit/outstanding), period filter, bar charts (by category/vehicle/supplier/client), export **PDF** (`expo-print`) / **CSV** (`expo-file-system`) / WhatsApp
+- **Reminder** — local notifications (`expo-notifications`) with recurring + alarm modal + sound (`expo-av`, `AlarmModal`, `TimePicker`)
+- **Subscription (Cashfree)** — `/subscription` (trial/active/expired) via `useSubscription` (cached), `/subscription/order` + `/subscription/verify`, `Paywall` with 3-day trial banner (`TrialBanner`) + premium home; server is source of truth, offline fallback via `AsyncStorage`
 
 ### Share & Copy
-- Every card's `⋮` menu supports **Share on WhatsApp** and **Copy details** (with a "Copied to clipboard" toast) for Trips, Drivers, Suppliers and Pumps
+- Every card's `⋮` menu supports **Share on WhatsApp** and **Copy details** (with a "Copied to clipboard" toast) for Trips, Drivers, Suppliers, Pumps, Expenses and Documents
 
 ## Tech Stack
 
-- **Framework:** Expo SDK 54
+- **Framework:** Expo SDK 57 (Expo Router v6)
 - **Language:** TypeScript (strict)
 - **Navigation:** Expo Router (Tabs + Stack)
 - **State:** React Context (`AuthProvider`, `ThemeProvider`, `LanguageProvider`)
@@ -32,15 +40,20 @@ A comprehensive transport business management mobile application built with Expo
 - **Icons:** @expo/vector-icons (Ionicons)
 - **Image:** expo-image-picker
 - **Clipboard / share:** expo-clipboard + expo-linking
+- **Print / files:** expo-print, expo-file-system, expo-sharing (Reports PDF/CSV)
+- **Payments:** Cashfree PG (sandbox `TEST…`) via `WebBrowser` + `subscriptionApi`
+- **Notifications:** expo-notifications + expo-av (reminder alarms)
 
 ## Reusable Components
 
 - `components/ui/AppButton`, `AppInput`, `PasswordInput`, `AppText`, `AppCard`, `IconButton`, `LoadingIndicator`, `ErrorMessage`
 - `components/ui/ConfirmationModal`, `SuccessModal`, `DatePicker`
-- `components/ui/ScreenHeader` — title + subtitle + "Add …" action button
+- `components/ui/ScreenHeader` / `AppHeader` — title + subtitle + "Add …" action button
 - `components/ui/StatCard` + `StatsGrid` — 2×2 stat cards
 - `components/ui/SearchFilterBar` — search input + filter button + bottom-sheet filter (shows active filter chip with close icon)
 - `components/ui/ActionMenu` — bottom-sheet menu (edit / share / copy / delete)
+- `components/ui/AlarmModal`, `TimePicker`, `ErrorBoundary`
+- `components/subscription/TrialBanner`, `Paywall` — trial countdown (`LinearGradient` + `reanimated` pulse) + premium upsell (hidden when `premium`)
 - `components/layout/ScreenContainer`, `KeyboardAvoidingContainer`, `BottomTabBar`, `MoreSheet`
 - `utils/share.ts` — `copyToClipboard` / `shareOnWhatsApp`
 
@@ -84,18 +97,19 @@ Copy `.env.example` to `.env` and configure:
 ```
 smartmonk/
 ├── app/                        # Expo Router
-│   ├── _layout.tsx             # Root: Auth/Theme/Language providers + splash guard
+│   ├── _layout.tsx             # Root: Auth/Theme/Language/Subscription providers + splash guard + ErrorBoundary
 │   ├── index.tsx               # Animated splash (routing driven by _layout only)
 │   ├── (auth)/                 # welcome, login, signup
 │   ├── (onboarding)/           # profile-setup (4 steps), setup-complete
-│   └── (app)/                  # Tabs: home, trips, expense, reminder, more + hidden (suppliers, pumps, drivers, profile, reports, payments, settings, edit-profile)
+│   └── (app)/                  # Tabs: home, trips, expense, reminder, more + hidden (suppliers, pumps, drivers, profile, reports, payments, settings, edit-profile, documents, paywall)
 ├── components/
 │   ├── ui/                     # reusable App* + ScreenHeader, StatCard, SearchFilterBar, ActionMenu
 │   ├── layout/                 # ScreenContainer, BottomTabBar, MoreSheet
 │   ├── auth/ onboarding/ illustrations/
-├── hooks/                      # useAuth (context), useProfile, useOnboarding
+├── hooks/                      # useAuth (context), useProfile, useOnboarding, useSubscription (server-backed, cached)
 ├── services/
-│   ├── api/                    # client, config, tokenStorage (SecureStore), auth, profile, trips, suppliers, pumps, drivers
+│   ├── api/                    # client (30s timeout, friendly errors), config, tokenStorage (SecureStore), auth, profile, trips, suppliers, pumps, drivers, expenses, documents, subscription
+│   ├── notifications/          # reminder scheduling (expo-notifications) + alarm sound (expo-av)
 │   └── storage/                # legacy fallback (SecureStore for passwords)
 ├── theme/ i18n/ constants/ types/ utils/
 └── .env.example                # env template (safe to commit)

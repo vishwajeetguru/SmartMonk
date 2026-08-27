@@ -27,7 +27,7 @@ export function useProfile(): UseProfileReturn {
       setProfile(existingProfile);
       setIsProfileComplete(existingProfile?.completed || false);
     } catch (err: any) {
-      console.error('Error loading profile:', err);
+      if (__DEV__) console.warn('Error loading profile:', err?.message || err);
       setError(err?.message || 'Failed to load profile. Please try again.');
     } finally {
       setIsLoading(false);
@@ -67,8 +67,11 @@ export function useProfile(): UseProfileReturn {
         setIsProfileComplete(true);
         return true;
       } catch (err: any) {
-        console.error('Error saving profile:', err);
-        setError(err?.message || 'Failed to save profile. Please try again.');
+        if (__DEV__) console.warn('Error saving profile:', err?.message || err);
+        const msg = err?.status === 408 || err?.message?.toLowerCase().includes('timed out')
+          ? 'Could not reach server. Please check your internet connection and try again.'
+          : err?.message || 'Failed to save profile. Please try again.';
+        setError(msg);
         return false;
       } finally {
         setIsLoading(false);
@@ -96,7 +99,7 @@ export function useProfile(): UseProfileReturn {
         setIsProfileComplete(updatedProfile.completed);
         return true;
       } catch (err: any) {
-        console.error('Error updating profile:', err);
+        if (__DEV__) console.warn('Error updating profile:', err?.message || err);
         setError(err?.message || 'Failed to update profile. Please try again.');
         return false;
       } finally {

@@ -3,7 +3,7 @@ import { tokenStorage } from './tokenStorage';
 
 type FetchOptions = RequestInit & { _retry?: boolean; timeoutMs?: number };
 
-const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_TIMEOUT_MS = 30000;
 
 function withTimeout(signal: AbortSignal | undefined, timeoutMs: number): { signal: AbortSignal; cleanup: () => void } {
   const controller = new AbortController();
@@ -72,10 +72,15 @@ export async function apiFetch(path: string, options: FetchOptions = {}): Promis
   } catch (e: any) {
     cleanup();
     if (e?.name === 'AbortError') {
-      const err: any = new Error('Request timed out');
+      const err: any = new Error('Could not reach server. Check that your phone and PC are on the same Wi-Fi and that the backend is running on 192.168.1.6:3000');
       err.status = 408;
       throw err;
     }
+    // Include original error message for network failures (e.g. Failed to fetch)
+    const msg = e?.message?.includes('Network request failed') || e?.message?.includes('Failed to fetch')
+      ? 'Could not reach server. Check that your phone and PC are on the same Wi-Fi and that the backend is running on 192.168.1.6:3000'
+      : e?.message;
+    if (msg && msg !== e?.message) { e.message = msg; }
     throw e;
   }
   cleanup();
@@ -125,7 +130,7 @@ export async function apiUpload(path: string, formData: FormData, options: Fetch
   } catch (e: any) {
     cleanup();
     if (e?.name === 'AbortError') {
-      const err: any = new Error('Upload timed out');
+      const err: any = new Error('Upload timed out — check your connection and try again');
       err.status = 408;
       throw err;
     }

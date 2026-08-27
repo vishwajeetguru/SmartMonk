@@ -7,6 +7,7 @@ import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import { AppHeader } from '../../components/ui/AppHeader';
 
 export default function PaymentsScreen() {
   const { colors } = useTheme();
@@ -14,11 +15,7 @@ export default function PaymentsScreen() {
   const { t } = useTranslation();
   return (
     <ScreenContainer safeArea padded={false} style={styles.container}>
-      <View style={styles.header}>
-        <Ionicons name="card-outline" size={28} color={colors.primary} />
-        <Text style={styles.headerTitle}>{t('screen.payments')}</Text>
-        <View style={{ width: 28 }} />
-      </View>
+      <AppHeader title={t('screen.payments')} icon="card-outline" />
       <View style={styles.content}>
         <View style={styles.iconWrap}><Ionicons name="cash" size={48} color={colors.success} /></View>
         <Text style={styles.title}>{t('screen.payments')}</Text>
@@ -30,8 +27,6 @@ export default function PaymentsScreen() {
 }
 const makeStyles = (colors: any) => StyleSheet.create({
   container: { backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
-  headerTitle: { ...typography.headingSmall, color: colors.textPrimary },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.base, gap: spacing.base },
   iconWrap: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.successLight, alignItems: 'center', justifyContent: 'center' },
   title: { ...typography.headingMedium, color: colors.textPrimary },

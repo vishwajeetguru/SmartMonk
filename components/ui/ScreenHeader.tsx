@@ -11,6 +11,7 @@ interface ScreenHeaderProps {
   actionLabel: string;
   onAction: () => void;
   actionIcon?: keyof typeof Ionicons.glyphMap;
+  onBack?: () => void;
 }
 
 export function ScreenHeader({
@@ -19,12 +20,18 @@ export function ScreenHeader({
   actionLabel,
   onAction,
   actionIcon = 'add',
+  onBack,
 }: ScreenHeaderProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   return (
     <View style={styles.row}>
+      {onBack ? (
+        <TouchableOpacity style={styles.backBtn} onPress={onBack} hitSlop={8}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+      ) : null}
       <View style={styles.titleWrap}>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -41,10 +48,19 @@ const makeStyles = (colors: any) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: spacing.base,
     paddingTop: 8,
     paddingBottom: 16,
+    gap: 8,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
   },
   titleWrap: { flex: 1, paddingRight: 12 },
   title: { ...typography.headingMedium, color: '#0F172A', fontSize: 28, fontWeight: '800' },

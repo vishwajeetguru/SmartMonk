@@ -1,12 +1,29 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, useRouter, useSegments } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { BottomTabBar } from '../../components/layout/BottomTabBar';
+import { useSubscription } from '../../hooks/useSubscription';
 
 export default function AppLayout() {
   const { colors } = useTheme();
+  const router = useRouter();
+  const segments = useSegments();
+  const { status, loading } = useSubscription();
+
+  // Gate: once the trial is over and unpaid, force the paywall.
+  useEffect(() => {
+    if (loading) return;
+    const inPaywall = segments[segments.length - 1] === 'paywall';
+    if (status === 'expired' && !inPaywall) {
+      router.replace('/(app)/paywall');
+    }
+  }, [status, loading, segments]);
+
+  const hideTabs = segments[segments.length - 1] === 'paywall';
+
   return (
     <Tabs
-      tabBar={(props) => <BottomTabBar {...props} />}
+      tabBar={(props) => (hideTabs ? null : <BottomTabBar {...props} />)}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.background },
@@ -29,6 +46,8 @@ export default function AppLayout() {
       <Tabs.Screen name="reports" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="edit-profile" options={{ href: null }} />
+      <Tabs.Screen name="paywall" options={{ href: null }} />
+      <Tabs.Screen name="documents" options={{ href: null }} />
     </Tabs>
   );
 }

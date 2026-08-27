@@ -17,7 +17,7 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
     const opts: any = descriptors[route.key]?.options;
     if (route.name === 'edit-profile') return false;
     // Hide the More inner pages from tab bar, they live inside More sheet
-    if (['suppliers', 'pumps', 'drivers', 'profile', 'payments', 'reports', 'settings'].includes(route.name)) return false;
+    if (['suppliers', 'pumps', 'drivers', 'profile', 'payments', 'reports', 'settings', 'paywall', 'documents'].includes(route.name)) return false;
     return opts?.href !== null;
   });
 

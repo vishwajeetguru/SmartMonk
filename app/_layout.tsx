@@ -3,9 +3,13 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
+import { SubscriptionProvider } from '../hooks/useSubscription';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { LanguageProvider } from '../i18n/LanguageContext';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
+import '../services/notifications/reminderService'; // registers notification handler
 
 // Keep splash visible while auth loads - single source of truth per Expo v57 docs
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -21,6 +25,14 @@ function RootNavigator() {
     // Hide native splash once auth resolved
     SplashScreen.hideAsync().catch(() => {});
   }, [isLoading]);
+
+  useEffect(() => {
+    // Navigate to Reminder tab when user taps a notification
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      if (!isLoading) router.replace('/(app)/reminder');
+    });
+    return () => sub.remove();
+  }, [isLoading, router]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -52,14 +64,18 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <LanguageProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <RootNavigator />
-          </AuthProvider>
-        </ThemeProvider>
-      </LanguageProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <SubscriptionProvider>
+                <RootNavigator />
+              </SubscriptionProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

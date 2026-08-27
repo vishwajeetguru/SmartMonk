@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsProfileComplete(false);
       }
     } catch (err) {
-      if (__DEV__) console.error('Error checking auth state:', err);
+      if (__DEV__) console.warn('Error checking auth state:', err);
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
@@ -161,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsProfileComplete(false);
       setError(null);
     } catch (err) {
-      console.error('Error logging out:', err);
+      if (__DEV__) console.warn('Error logging out:', err);
     }
   }, []);
 

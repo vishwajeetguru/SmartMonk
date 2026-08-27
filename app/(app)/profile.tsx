@@ -9,6 +9,7 @@ import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
 import { KeyboardAvoidingContainer } from '../../components/layout/KeyboardAvoidingContainer';
+import { AppHeader } from '../../components/ui/AppHeader';
 import { AppButton } from '../../components/ui/AppButton';
 import { AppInput } from '../../components/ui/AppInput';
 import { ErrorMessage } from '../../components/ui/ErrorMessage';
@@ -19,6 +20,7 @@ import { BusinessTypeSelector } from '../../components/onboarding/BusinessTypeSe
 import { VehicleCountSelector } from '../../components/onboarding/VehicleCountSelector';
 import { useAuth } from '../../hooks/useAuth';
 import { useProfile } from '../../hooks/useProfile';
+import { useSubscription } from '../../hooks/useSubscription';
 import { validation } from '../../utils/validation';
 import { BusinessType, VehicleCount, Vehicle } from '../../types/profile';
 import { generateId } from '../../utils/generateId';
@@ -30,6 +32,7 @@ export default function ProfileTabScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { profile, isLoading, error, saveProfile, loadProfile, clearError } = useProfile();
+  const { premium } = useSubscription();
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -189,15 +192,11 @@ export default function ProfileTabScreen() {
   return (
     <ScreenContainer safeArea padded={false} style={styles.container}>
       <KeyboardAvoidingContainer>
-        <View style={styles.header}>
-          <Ionicons name="person-circle" size={28} color={colors.primary} />
-          <Text style={styles.headerTitle}>{t('screen.profile')}</Text>
-          <View style={{ width: 28 }} />
-        </View>
+        <AppHeader title={t('screen.profile')} icon="person-circle" />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.form}>
             {error && <ErrorMessage message={error} />}
-            <ProfileAvatar imageUri={profileImage} name={fullName} onImageSelected={setProfileImage} />
+            <ProfileAvatar imageUri={profileImage} name={fullName} onImageSelected={setProfileImage} premium={premium} />
             <AppInput label={t('form.fullNameRequired')} value={fullName} onChangeText={setFullName} placeholder={t('form.fullNamePlaceholder')} autoCapitalize="words" error={fieldErrors.fullName} leftIcon={<Ionicons name="person-outline" size={20} color={colors.textSecondary} />} />
             <AppInput label={t('form.businessName')} value={businessName} onChangeText={setBusinessName} placeholder={t('form.businessNamePlaceholder')} leftIcon={<Ionicons name="business-outline" size={20} color={colors.textSecondary} />} />
             <AppInput label={t('form.mobileRequired')} value={mobile} onChangeText={setMobile} placeholder={t('form.mobilePlaceholder')} keyboardType="phone-pad" error={fieldErrors.mobile} leftIcon={<Ionicons name="call-outline" size={20} color={colors.textSecondary} />} />

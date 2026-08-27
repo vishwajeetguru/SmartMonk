@@ -18,15 +18,19 @@ interface ProfileAvatarProps {
   name: string;
   onImageSelected: (uri: string) => void;
   size?: number;
+  premium?: boolean;
 }
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+const CROWN_AVATAR = require('../../assets/icons/Crown.png');
 
 export function ProfileAvatar({
   imageUri,
   name,
   onImageSelected,
   size = 120,
+  premium = false,
 }: ProfileAvatarProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -103,6 +107,11 @@ export function ProfileAvatar({
       <View style={styles.cameraIcon}>
         <Ionicons name="camera" size={20} color={colors.white} />
       </View>
+      {premium && (
+        <View style={styles.premiumBadge}>
+          <Image source={CROWN_AVATAR} style={styles.premiumCrown} resizeMode="contain" />
+        </View>
+      )}
     </AnimatedTouchable>
   );
 }
@@ -139,4 +148,22 @@ const makeStyles = (colors: any) => StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.white,
   },
+  premiumBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 2,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#92400E',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  premiumCrown: { width: 14, height: 10 },
 });

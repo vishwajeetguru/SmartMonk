@@ -8,6 +8,7 @@ import { typography } from '../../constants/typography';
 import { spacing } from '../../constants/spacing';
 import { radius } from '../../constants/radius';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
+import { AppHeader } from '../../components/ui/AppHeader';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function SettingsScreen() {
@@ -18,11 +19,7 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer safeArea padded={false} style={{ backgroundColor: colors.background }}>
-      <View style={styles.header}>
-        <Ionicons name="settings-outline" size={28} color={colors.primary} />
-        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
-        <View style={{ width: 28 }} />
-      </View>
+      <AppHeader title={t('settings.title')} icon="settings-outline" />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
@@ -89,8 +86,6 @@ export default function SettingsScreen() {
 
 const makeStyles = (colors: any) =>
   StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
-    headerTitle: { ...typography.headingSmall, color: colors.textPrimary },
     scroll: { padding: spacing.base, paddingBottom: 100, gap: spacing.base },
     card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.base, borderWidth: 1, borderColor: colors.border },
     cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.base },

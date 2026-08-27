@@ -22,6 +22,7 @@ const MORE_ITEMS: MoreItem[] = [
   { key: 'drivers', label: 'Drivers', icon: 'people', color: colors.primary, bg: colors.primarySurface, route: '/(app)/drivers' },
   { key: 'payments', label: 'Payments', icon: 'card', color: colors.success, bg: colors.successLight, route: '/(app)/payments' },
   { key: 'reports', label: 'Reports', icon: 'bar-chart', color: colors.primary, bg: colors.primarySurface, route: '/(app)/reports' },
+  { key: 'documents', label: 'Documents', icon: 'document-text', color: '#0EA5E9', bg: '#E0F2FE', route: '/(app)/documents' },
   { key: 'profile', label: 'Profile', icon: 'person-circle', color: colors.primary, bg: colors.primarySurface, route: '/(app)/profile' },
   { key: 'settings', label: 'Settings', icon: 'settings', color: colors.textSecondary, bg: colors.backgroundSecondary, route: '/(app)/settings' },
 ];
